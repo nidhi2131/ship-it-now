@@ -9,38 +9,179 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OnboardingIndexRouteImport } from './routes/onboarding.index'
+import { Route as WorkerDashboardRouteImport } from './routes/worker.dashboard'
+import { Route as SeekerDashboardRouteImport } from './routes/seeker.dashboard'
+import { Route as OnboardingWorkerRouteImport } from './routes/onboarding.worker'
+import { Route as OnboardingSeekerRouteImport } from './routes/onboarding.seeker'
+import { Route as OnboardingRoleRouteImport } from './routes/onboarding.role'
+import { Route as MessagesIdRouteImport } from './routes/messages.$id'
+import { Route as ProfileWorkerIdRouteImport } from './routes/profile.worker.$id'
+import { Route as ProfileSeekerIdRouteImport } from './routes/profile.seeker.$id'
 
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
+  id: '/onboarding/',
+  path: '/onboarding/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkerDashboardRoute = WorkerDashboardRouteImport.update({
+  id: '/worker/dashboard',
+  path: '/worker/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeekerDashboardRoute = SeekerDashboardRouteImport.update({
+  id: '/seeker/dashboard',
+  path: '/seeker/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingWorkerRoute = OnboardingWorkerRouteImport.update({
+  id: '/onboarding/worker',
+  path: '/onboarding/worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingSeekerRoute = OnboardingSeekerRouteImport.update({
+  id: '/onboarding/seeker',
+  path: '/onboarding/seeker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoleRoute = OnboardingRoleRouteImport.update({
+  id: '/onboarding/role',
+  path: '/onboarding/role',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesIdRoute = MessagesIdRouteImport.update({
+  id: '/messages/$id',
+  path: '/messages/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileWorkerIdRoute = ProfileWorkerIdRouteImport.update({
+  id: '/profile/worker/$id',
+  path: '/profile/worker/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileSeekerIdRoute = ProfileSeekerIdRouteImport.update({
+  id: '/profile/seeker/$id',
+  path: '/profile/seeker/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/search': typeof SearchRoute
+  '/messages/$id': typeof MessagesIdRoute
+  '/onboarding/role': typeof OnboardingRoleRoute
+  '/onboarding/seeker': typeof OnboardingSeekerRoute
+  '/onboarding/worker': typeof OnboardingWorkerRoute
+  '/seeker/dashboard': typeof SeekerDashboardRoute
+  '/worker/dashboard': typeof WorkerDashboardRoute
+  '/onboarding/': typeof OnboardingIndexRoute
+  '/profile/seeker/$id': typeof ProfileSeekerIdRoute
+  '/profile/worker/$id': typeof ProfileWorkerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/search': typeof SearchRoute
+  '/messages/$id': typeof MessagesIdRoute
+  '/onboarding/role': typeof OnboardingRoleRoute
+  '/onboarding/seeker': typeof OnboardingSeekerRoute
+  '/onboarding/worker': typeof OnboardingWorkerRoute
+  '/seeker/dashboard': typeof SeekerDashboardRoute
+  '/worker/dashboard': typeof WorkerDashboardRoute
+  '/onboarding': typeof OnboardingIndexRoute
+  '/profile/seeker/$id': typeof ProfileSeekerIdRoute
+  '/profile/worker/$id': typeof ProfileWorkerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/search': typeof SearchRoute
+  '/messages/$id': typeof MessagesIdRoute
+  '/onboarding/role': typeof OnboardingRoleRoute
+  '/onboarding/seeker': typeof OnboardingSeekerRoute
+  '/onboarding/worker': typeof OnboardingWorkerRoute
+  '/seeker/dashboard': typeof SeekerDashboardRoute
+  '/worker/dashboard': typeof WorkerDashboardRoute
+  '/onboarding/': typeof OnboardingIndexRoute
+  '/profile/seeker/$id': typeof ProfileSeekerIdRoute
+  '/profile/worker/$id': typeof ProfileWorkerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/search'
+    | '/messages/$id'
+    | '/onboarding/role'
+    | '/onboarding/seeker'
+    | '/onboarding/worker'
+    | '/seeker/dashboard'
+    | '/worker/dashboard'
+    | '/onboarding/'
+    | '/profile/seeker/$id'
+    | '/profile/worker/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/search'
+    | '/messages/$id'
+    | '/onboarding/role'
+    | '/onboarding/seeker'
+    | '/onboarding/worker'
+    | '/seeker/dashboard'
+    | '/worker/dashboard'
+    | '/onboarding'
+    | '/profile/seeker/$id'
+    | '/profile/worker/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/search'
+    | '/messages/$id'
+    | '/onboarding/role'
+    | '/onboarding/seeker'
+    | '/onboarding/worker'
+    | '/seeker/dashboard'
+    | '/worker/dashboard'
+    | '/onboarding/'
+    | '/profile/seeker/$id'
+    | '/profile/worker/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SearchRoute: typeof SearchRoute
+  MessagesIdRoute: typeof MessagesIdRoute
+  OnboardingRoleRoute: typeof OnboardingRoleRoute
+  OnboardingSeekerRoute: typeof OnboardingSeekerRoute
+  OnboardingWorkerRoute: typeof OnboardingWorkerRoute
+  SeekerDashboardRoute: typeof SeekerDashboardRoute
+  WorkerDashboardRoute: typeof WorkerDashboardRoute
+  OnboardingIndexRoute: typeof OnboardingIndexRoute
+  ProfileSeekerIdRoute: typeof ProfileSeekerIdRoute
+  ProfileWorkerIdRoute: typeof ProfileWorkerIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +189,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/onboarding/': {
+      id: '/onboarding/'
+      path: '/onboarding'
+      fullPath: '/onboarding/'
+      preLoaderRoute: typeof OnboardingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/worker/dashboard': {
+      id: '/worker/dashboard'
+      path: '/worker/dashboard'
+      fullPath: '/worker/dashboard'
+      preLoaderRoute: typeof WorkerDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seeker/dashboard': {
+      id: '/seeker/dashboard'
+      path: '/seeker/dashboard'
+      fullPath: '/seeker/dashboard'
+      preLoaderRoute: typeof SeekerDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding/worker': {
+      id: '/onboarding/worker'
+      path: '/onboarding/worker'
+      fullPath: '/onboarding/worker'
+      preLoaderRoute: typeof OnboardingWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding/seeker': {
+      id: '/onboarding/seeker'
+      path: '/onboarding/seeker'
+      fullPath: '/onboarding/seeker'
+      preLoaderRoute: typeof OnboardingSeekerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding/role': {
+      id: '/onboarding/role'
+      path: '/onboarding/role'
+      fullPath: '/onboarding/role'
+      preLoaderRoute: typeof OnboardingRoleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages/$id': {
+      id: '/messages/$id'
+      path: '/messages/$id'
+      fullPath: '/messages/$id'
+      preLoaderRoute: typeof MessagesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/worker/$id': {
+      id: '/profile/worker/$id'
+      path: '/profile/worker/$id'
+      fullPath: '/profile/worker/$id'
+      preLoaderRoute: typeof ProfileWorkerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/seeker/$id': {
+      id: '/profile/seeker/$id'
+      path: '/profile/seeker/$id'
+      fullPath: '/profile/seeker/$id'
+      preLoaderRoute: typeof ProfileSeekerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SearchRoute: SearchRoute,
+  MessagesIdRoute: MessagesIdRoute,
+  OnboardingRoleRoute: OnboardingRoleRoute,
+  OnboardingSeekerRoute: OnboardingSeekerRoute,
+  OnboardingWorkerRoute: OnboardingWorkerRoute,
+  SeekerDashboardRoute: SeekerDashboardRoute,
+  WorkerDashboardRoute: WorkerDashboardRoute,
+  OnboardingIndexRoute: OnboardingIndexRoute,
+  ProfileSeekerIdRoute: ProfileSeekerIdRoute,
+  ProfileWorkerIdRoute: ProfileWorkerIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
