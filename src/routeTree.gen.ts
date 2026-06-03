@@ -17,6 +17,9 @@ import { Route as SeekerDashboardRouteImport } from './routes/seeker.dashboard'
 import { Route as OnboardingWorkerRouteImport } from './routes/onboarding.worker'
 import { Route as OnboardingSeekerRouteImport } from './routes/onboarding.seeker'
 import { Route as OnboardingRoleRouteImport } from './routes/onboarding.role'
+import { Route as MessagesIdRouteImport } from './routes/messages.$id'
+import { Route as ProfileWorkerIdRouteImport } from './routes/profile.worker.$id'
+import { Route as ProfileSeekerIdRouteImport } from './routes/profile.seeker.$id'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -58,80 +61,116 @@ const OnboardingRoleRoute = OnboardingRoleRouteImport.update({
   path: '/onboarding/role',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MessagesIdRoute = MessagesIdRouteImport.update({
+  id: '/messages/$id',
+  path: '/messages/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileWorkerIdRoute = ProfileWorkerIdRouteImport.update({
+  id: '/profile/worker/$id',
+  path: '/profile/worker/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileSeekerIdRoute = ProfileSeekerIdRouteImport.update({
+  id: '/profile/seeker/$id',
+  path: '/profile/seeker/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
+  '/messages/$id': typeof MessagesIdRoute
   '/onboarding/role': typeof OnboardingRoleRoute
   '/onboarding/seeker': typeof OnboardingSeekerRoute
   '/onboarding/worker': typeof OnboardingWorkerRoute
   '/seeker/dashboard': typeof SeekerDashboardRoute
   '/worker/dashboard': typeof WorkerDashboardRoute
   '/onboarding/': typeof OnboardingIndexRoute
+  '/profile/seeker/$id': typeof ProfileSeekerIdRoute
+  '/profile/worker/$id': typeof ProfileWorkerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
+  '/messages/$id': typeof MessagesIdRoute
   '/onboarding/role': typeof OnboardingRoleRoute
   '/onboarding/seeker': typeof OnboardingSeekerRoute
   '/onboarding/worker': typeof OnboardingWorkerRoute
   '/seeker/dashboard': typeof SeekerDashboardRoute
   '/worker/dashboard': typeof WorkerDashboardRoute
   '/onboarding': typeof OnboardingIndexRoute
+  '/profile/seeker/$id': typeof ProfileSeekerIdRoute
+  '/profile/worker/$id': typeof ProfileWorkerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
+  '/messages/$id': typeof MessagesIdRoute
   '/onboarding/role': typeof OnboardingRoleRoute
   '/onboarding/seeker': typeof OnboardingSeekerRoute
   '/onboarding/worker': typeof OnboardingWorkerRoute
   '/seeker/dashboard': typeof SeekerDashboardRoute
   '/worker/dashboard': typeof WorkerDashboardRoute
   '/onboarding/': typeof OnboardingIndexRoute
+  '/profile/seeker/$id': typeof ProfileSeekerIdRoute
+  '/profile/worker/$id': typeof ProfileWorkerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/search'
+    | '/messages/$id'
     | '/onboarding/role'
     | '/onboarding/seeker'
     | '/onboarding/worker'
     | '/seeker/dashboard'
     | '/worker/dashboard'
     | '/onboarding/'
+    | '/profile/seeker/$id'
+    | '/profile/worker/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/search'
+    | '/messages/$id'
     | '/onboarding/role'
     | '/onboarding/seeker'
     | '/onboarding/worker'
     | '/seeker/dashboard'
     | '/worker/dashboard'
     | '/onboarding'
+    | '/profile/seeker/$id'
+    | '/profile/worker/$id'
   id:
     | '__root__'
     | '/'
     | '/search'
+    | '/messages/$id'
     | '/onboarding/role'
     | '/onboarding/seeker'
     | '/onboarding/worker'
     | '/seeker/dashboard'
     | '/worker/dashboard'
     | '/onboarding/'
+    | '/profile/seeker/$id'
+    | '/profile/worker/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SearchRoute: typeof SearchRoute
+  MessagesIdRoute: typeof MessagesIdRoute
   OnboardingRoleRoute: typeof OnboardingRoleRoute
   OnboardingSeekerRoute: typeof OnboardingSeekerRoute
   OnboardingWorkerRoute: typeof OnboardingWorkerRoute
   SeekerDashboardRoute: typeof SeekerDashboardRoute
   WorkerDashboardRoute: typeof WorkerDashboardRoute
   OnboardingIndexRoute: typeof OnboardingIndexRoute
+  ProfileSeekerIdRoute: typeof ProfileSeekerIdRoute
+  ProfileWorkerIdRoute: typeof ProfileWorkerIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,18 +231,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRoleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/messages/$id': {
+      id: '/messages/$id'
+      path: '/messages/$id'
+      fullPath: '/messages/$id'
+      preLoaderRoute: typeof MessagesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/worker/$id': {
+      id: '/profile/worker/$id'
+      path: '/profile/worker/$id'
+      fullPath: '/profile/worker/$id'
+      preLoaderRoute: typeof ProfileWorkerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/seeker/$id': {
+      id: '/profile/seeker/$id'
+      path: '/profile/seeker/$id'
+      fullPath: '/profile/seeker/$id'
+      preLoaderRoute: typeof ProfileSeekerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SearchRoute: SearchRoute,
+  MessagesIdRoute: MessagesIdRoute,
   OnboardingRoleRoute: OnboardingRoleRoute,
   OnboardingSeekerRoute: OnboardingSeekerRoute,
   OnboardingWorkerRoute: OnboardingWorkerRoute,
   SeekerDashboardRoute: SeekerDashboardRoute,
   WorkerDashboardRoute: WorkerDashboardRoute,
   OnboardingIndexRoute: OnboardingIndexRoute,
+  ProfileSeekerIdRoute: ProfileSeekerIdRoute,
+  ProfileWorkerIdRoute: ProfileWorkerIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
