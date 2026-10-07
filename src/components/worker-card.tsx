@@ -24,10 +24,10 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-lg font-bold text-foreground">{w.fullName}</h3>
           <div className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" /> {w.area}, {w.city}
+            <MapPin className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{w.area}, {w.city}</span>
           </div>
         </div>
-        <div className="flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-sm font-semibold text-primary">
+        <div className="flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-sm font-semibold text-primary shrink-0">
           <Star className="h-3.5 w-3.5 fill-current" />
           {w.rating.toFixed(1)}
         </div>
@@ -51,11 +51,11 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1">
-          <Languages className="h-3.5 w-3.5" /> {w.languages.slice(0, 2).join(", ")}
+          <Languages className="h-3.5 w-3.5 shrink-0" /> {w.languages.slice(0, 2).join(", ")}
         </span>
         <span>{expLabel}</span>
         <span className="inline-flex items-center gap-0.5 font-semibold text-foreground">
-          <IndianRupee className="h-3.5 w-3.5" />
+          <IndianRupee className="h-3.5 w-3.5 shrink-0" />
           {w.rateMin}–{w.rateMax}
           <span className="ml-1 text-xs font-normal text-muted-foreground">
             / {t("card.perDay")}
@@ -67,14 +67,14 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
         <Link
           to="/profile/worker/$id"
           params={{ id: w.id }}
-          className="inline-link flex-1 rounded-lg border border-border bg-background px-4 py-2.5 text-center text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
         >
           {t("card.viewProfile")}
         </Link>
         {w.contactMethod === "common.call" ? (
           <a
             href={`tel:+91${w.phone}`}
-            className="inline-link flex-1 rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+            className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
           >
             {t("common.call")}
           </a>
@@ -82,7 +82,7 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
           <Link
             to="/messages/$id"
             params={{ id: w.id }}
-            className="inline-link flex-1 rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+            className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
           >
             {t("card.message")}
           </Link>

@@ -101,7 +101,7 @@ function MessageThread() {
             disabled={!canMessage}
             placeholder={t("msg.placeholder")}
           />
-          <PrimaryButton type="submit" aria-label={t("msg.send")} disabled={!canMessage}>
+          <PrimaryButton type="submit" aria-label={t("msg.send")} disabled={!canMessage} className="shrink-0">
             <Send className="h-4 w-4" />
           </PrimaryButton>
         </form>

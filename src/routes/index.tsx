@@ -77,8 +77,8 @@ function Landing() {
 
           {/* Hero card art */}
           <div className="relative">
-            <div className="absolute -left-6 -top-6 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
-            <div className="absolute -bottom-10 -right-4 h-64 w-64 rounded-full bg-secondary/15 blur-3xl" />
+            <div className="pointer-events-none absolute -left-6 -top-6 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-10 -right-4 h-64 w-64 rounded-full bg-secondary/15 blur-3xl" />
             <div className="relative grid gap-4">
               <FeatureCard
                 accent="primary"

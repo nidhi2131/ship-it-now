@@ -29,19 +29,19 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link to="/" className="inline-link flex items-center gap-2 font-bold text-foreground">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-warm">
-            <Heart className="h-5 w-5" fill="currentColor" />
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-3">
+        <Link to="/" className="inline-link flex items-center gap-2 font-bold text-foreground shrink-0">
+          <span className="grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-warm shrink-0">
+            <Heart className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" />
           </span>
-          <span className="text-lg tracking-tight">{t("app.name")}</span>
+          <span className="text-base sm:text-lg tracking-tight font-bold">{t("app.name")}</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           {me?.role === "seeker" && (
             <Link
               to="/seeker/dashboard"
-              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
+              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground md:inline-flex"
             >
               {t("nav.dashboard")}
             </Link>
@@ -49,7 +49,7 @@ export function SiteHeader() {
           {me?.role === "worker" && (
             <Link
               to="/worker/dashboard"
-              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
+              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground md:inline-flex"
             >
               {t("nav.dashboard")}
             </Link>
@@ -60,39 +60,23 @@ export function SiteHeader() {
           >
             {t("nav.search")}
           </Link>
-          {me && (
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 sm:inline-flex"
-            >
-              Logout
-            </button>
-          )}
-          {!me && (
-            <Link
-              to="/login"
-              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-primary hover:text-primary/80 sm:inline-flex"
-            >
-              Log in
-            </Link>
-          )}
 
+          {/* Language selector button */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setOpen((o) => !o)}
-              className="inline-link flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-soft hover:bg-accent"
+              className="inline-link flex items-center gap-1.5 sm:gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-foreground shadow-soft hover:bg-accent shrink-0 transition-colors"
               aria-haspopup="menu"
               aria-expanded={open}
             >
-              <Globe className="h-4 w-4" />
+              <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-muted-foreground" />
               <span>{current.label}</span>
             </button>
             {open && (
               <div
                 role="menu"
-                className="absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-popover shadow-warm"
+                className="absolute right-0 z-50 mt-2 w-40 sm:w-44 overflow-hidden rounded-xl border border-border bg-popover shadow-warm"
                 onMouseLeave={() => setOpen(false)}
               >
                 {langs.map((l) => (
@@ -102,7 +86,7 @@ export function SiteHeader() {
                       setLocale(l.code);
                       setOpen(false);
                     }}
-                    className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-accent ${
+                    className={`block w-full px-4 py-2.5 text-left text-xs sm:text-sm hover:bg-accent ${
                       l.code === locale
                         ? "bg-primary-soft font-semibold text-primary"
                         : "text-foreground"
@@ -114,6 +98,24 @@ export function SiteHeader() {
               </div>
             )}
           </div>
+
+          {/* Login / Logout button - DISPLAYED AFTER LANGUAGE BUTTON AND NEVER HIDDEN ON MOBILE */}
+          {me ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-link inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50/80 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-red-600 hover:bg-red-100 hover:text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-900/60 shrink-0 transition-colors"
+            >
+              Logout
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              className="inline-link inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft hover:bg-primary/90 shrink-0 transition-colors"
+            >
+              Log in
+            </Link>
+          )}
         </div>
       </div>
     </header>
