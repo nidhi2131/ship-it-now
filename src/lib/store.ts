@@ -204,12 +204,7 @@ export const getAuthSession = () => read<AuthSession | null>(K.auth, null);
 export const isAuthenticated = () => getAuthSession() !== null;
 
 export const getAuthAccounts = () => {
-  const stored = read<AuthAccount[]>(K.accounts, []);
-  if (stored.length === 0) {
-    write(K.accounts, SEED_AUTH_ACCOUNTS);
-    return SEED_AUTH_ACCOUNTS;
-  }
-  return stored;
+  return read<AuthAccount[]>(K.accounts, []);
 };
 
 export const getCurrentAccount = () => {
@@ -390,26 +385,12 @@ export const register = async (email: string, password: string, meData: Omit<Me,
 };
 
 export const getSeekers = (): SeekerProfile[] => {
-  if (isEvaluatingServerSnapshot) return SEED_SEEKERS;
-  const stored = read<SeekerProfile[]>(K.seekers, []);
-  if (stored.length === 0) {
-    if (typeof window !== "undefined") {
-      write(K.seekers, SEED_SEEKERS);
-    }
-    return SEED_SEEKERS;
-  }
-  return stored;
+  if (isEvaluatingServerSnapshot) return [];
+  return read<SeekerProfile[]>(K.seekers, []);
 };
 export const getWorkers = (): WorkerProfile[] => {
-  if (isEvaluatingServerSnapshot) return SEED_WORKERS;
-  const stored = read<WorkerProfile[]>(K.workers, []);
-  if (stored.length === 0) {
-    if (typeof window !== "undefined") {
-      write(K.workers, SEED_WORKERS);
-    }
-    return SEED_WORKERS;
-  }
-  return stored;
+  if (isEvaluatingServerSnapshot) return [];
+  return read<WorkerProfile[]>(K.workers, []);
 };
 
 export const upsertSeeker = async (s: SeekerProfile) => {
@@ -809,12 +790,8 @@ if (isSupabaseConfigured) {
           createdAt: new Date(w.created_at).getTime(),
         }));
 
-        // Merge with existing workers
-        const existingWorkers = read<WorkerProfile[]>(K.workers, SEED_WORKERS);
-        const workerMap = new Map<string, WorkerProfile>();
-        existingWorkers.forEach((w) => workerMap.set(w.id, w));
-        mappedWorkers.forEach((w: any) => workerMap.set(w.id, w));
-        write(K.workers, Array.from(workerMap.values()));
+        // Store workers from Supabase directly
+        write(K.workers, mappedWorkers);
       }
 
       const { data: seekers } = await supabase
@@ -836,12 +813,8 @@ if (isSupabaseConfigured) {
           createdAt: new Date(s.created_at).getTime(),
         }));
 
-        // Merge with existing seekers
-        const existingSeekers = read<SeekerProfile[]>(K.seekers, SEED_SEEKERS);
-        const seekerMap = new Map<string, SeekerProfile>();
-        existingSeekers.forEach((s) => seekerMap.set(s.id, s));
-        mappedSeekers.forEach((s: any) => seekerMap.set(s.id, s));
-        write(K.seekers, Array.from(seekerMap.values()));
+        // Store seekers from Supabase directly
+        write(K.seekers, mappedSeekers);
       }
 
       const { data: requests } = await supabase
@@ -1064,303 +1037,44 @@ export function useStore<T>(readFn: () => T): T {
   return useSyncExternalStore(subscribeToStore, getSnapshot, getServerSnapshot);
 }
 
-// --- Seed data: experienced caregivers so the app feels alive on day one ---
-const SEED_WORKERS: WorkerProfile[] = [
-  {
-    id: "w-sunita",
-    fullName: "Sunita Patel",
-    phone: "9876543210",
-    city: "Ahmedabad",
-    area: "Bodakdev",
-    gender: "female",
-    age: 42,
-    languages: ["English", "Hindi", "Gujarati"],
-    experience: "5+",
-    skills: ["skill.cooking", "skill.hygiene", "skill.meds", "skill.companion", "skill.doctor"],
-    availabilityType: ["common.fullTime", "common.liveIn"],
-    hoursMin: 8,
-    hoursMax: 12,
-    rateMin: 700,
-    rateMax: 1100,
-    paymentMethods: ["common.upi", "common.cash"],
-    serviceAreas: ["Bodakdev", "Vastrapur", "Satellite"],
-    contactMethod: "common.whatsapp",
-    bio: "I have cared for elderly parents for 14 years. I cook simple home-style meals, manage medication on time, and treat every family like my own.",
-    days: ["mon", "tue", "wed", "thu", "fri", "sat"],
-    rating: 4.9,
-    reviews: [
-      {
-        id: "r1",
-        rating: 5,
-        comment:
-          "Sunita took wonderful care of my father after his surgery. Always punctual and patient.",
-        seekerName: "Mehul R.",
-        createdAt: Date.now() - 86400000 * 12,
-      },
-      {
-        id: "r2",
-        rating: 5,
-        comment: "Very kind. My mother looks forward to seeing her every morning.",
-        seekerName: "Anita K.",
-        createdAt: Date.now() - 86400000 * 40,
-      },
-    ],
-    createdAt: Date.now() - 86400000 * 200,
-  },
-  {
-    id: "w-ramesh",
-    fullName: "Ramesh Kumar",
-    phone: "9876543211",
-    city: "Ahmedabad",
-    area: "Maninagar",
-    gender: "male",
-    age: 38,
-    languages: ["Hindi", "Gujarati"],
-    experience: "3-5",
-    skills: ["skill.lifting", "skill.night", "skill.physio", "skill.hygiene"],
-    availabilityType: ["common.nightOnly", "common.liveIn"],
-    hoursMin: 10,
-    hoursMax: 12,
-    rateMin: 800,
-    rateMax: 1200,
-    paymentMethods: ["common.cash", "common.bank"],
-    serviceAreas: ["Maninagar", "Khokhra", "Isanpur"],
-    contactMethod: "common.call",
-    bio: "Trained in patient lifting and post-stroke physiotherapy. I can do night duty and help with mobility for bedridden patients.",
-    days: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
-    rating: 4.7,
-    reviews: [
-      {
-        id: "r3",
-        rating: 5,
-        comment: "Strong, gentle, and professional. Helped move my father safely every day.",
-        seekerName: "Priya S.",
-        createdAt: Date.now() - 86400000 * 20,
-      },
-    ],
-    createdAt: Date.now() - 86400000 * 150,
-  },
-  {
-    id: "w-meena",
-    fullName: "Meena Sharma",
-    phone: "9876543212",
-    city: "Ahmedabad",
-    area: "Navrangpura",
-    gender: "female",
-    age: 50,
-    languages: ["English", "Hindi"],
-    experience: "5+",
-    skills: ["skill.meds", "skill.companion", "skill.cooking", "skill.doctor"],
-    availabilityType: ["common.partTime", "common.fullTime"],
-    hoursMin: 4,
-    hoursMax: 8,
-    rateMin: 500,
-    rateMax: 800,
-    paymentMethods: ["common.upi"],
-    serviceAreas: ["Navrangpura", "C.G. Road", "Ellis Bridge"],
-    contactMethod: "common.whatsapp",
-    bio: "I specialise in companionship and medication management for elderly women living alone. Calm and patient with memory issues.",
-    days: ["mon", "tue", "wed", "thu", "fri"],
-    rating: 4.8,
-    reviews: [
-      {
-        id: "r4",
-        rating: 5,
-        comment: "Meena is like a daughter to my aunt. We are so lucky.",
-        seekerName: "Rohit M.",
-        createdAt: Date.now() - 86400000 * 8,
-      },
-      {
-        id: "r5",
-        rating: 4,
-        comment: "Very reliable. Mum's blood pressure is finally under control.",
-        seekerName: "Sneha P.",
-        createdAt: Date.now() - 86400000 * 60,
-      },
-    ],
-    createdAt: Date.now() - 86400000 * 300,
-  },
-  {
-    id: "w-vijay",
-    fullName: "Vijay Solanki",
-    phone: "9876543213",
-    city: "Ahmedabad",
-    area: "Satellite",
-    gender: "male",
-    age: 29,
-    languages: ["Hindi", "Gujarati", "English"],
-    experience: "1-2",
-    skills: ["skill.cleaning", "skill.cooking", "skill.companion", "skill.doctor"],
-    availabilityType: ["common.fullTime"],
-    hoursMin: 8,
-    hoursMax: 10,
-    rateMin: 450,
-    rateMax: 700,
-    paymentMethods: ["common.upi", "common.cash"],
-    serviceAreas: ["Satellite", "Prahladnagar", "Jodhpur"],
-    contactMethod: "common.whatsapp",
-    bio: "Young, energetic and trained at a hospital. I am respectful with elders and great with daily errands and doctor visits.",
-    days: ["mon", "tue", "wed", "thu", "fri", "sat"],
-    rating: 4.6,
-    reviews: [
-      {
-        id: "r6",
-        rating: 5,
-        comment: "Vijay handled my father's hospital visits with patience.",
-        seekerName: "Kunal D.",
-        createdAt: Date.now() - 86400000 * 30,
-      },
-    ],
-    createdAt: Date.now() - 86400000 * 90,
-  },
-  {
-    id: "w-fatima",
-    fullName: "Fatima Sheikh",
-    phone: "9876543214",
-    city: "Ahmedabad",
-    area: "Paldi",
-    gender: "female",
-    age: 45,
-    languages: ["Hindi", "Gujarati"],
-    experience: "5+",
-    skills: ["skill.cooking", "skill.hygiene", "skill.companion", "skill.meds", "skill.cleaning"],
-    availabilityType: ["common.fullTime", "common.liveIn"],
-    hoursMin: 10,
-    hoursMax: 12,
-    rateMin: 800,
-    rateMax: 1000,
-    paymentMethods: ["common.cash", "common.upi"],
-    serviceAreas: ["Paldi", "Vasna", "Ambawadi"],
-    contactMethod: "common.call",
-    bio: "Live-in caregiver with experience supporting families through dementia and end-of-life care. I bring warmth and routine to the home.",
-    days: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
-    rating: 5.0,
-    reviews: [
-      {
-        id: "r7",
-        rating: 5,
-        comment:
-          "Fatima ji was a blessing during my mother's final months. Compassionate beyond words.",
-        seekerName: "Anjali B.",
-        createdAt: Date.now() - 86400000 * 100,
-      },
-      {
-        id: "r8",
-        rating: 5,
-        comment: "Excellent cook and very loving with my grandmother.",
-        seekerName: "Karan J.",
-        createdAt: Date.now() - 86400000 * 180,
-      },
-    ],
-    createdAt: Date.now() - 86400000 * 400,
-  },
-  {
-    id: "w-anil",
-    fullName: "Anil Joshi",
-    phone: "9876543215",
-    city: "Ahmedabad",
-    area: "Vastrapur",
-    gender: "male",
-    age: 35,
-    languages: ["English", "Hindi"],
-    experience: "3-5",
-    skills: ["skill.physio", "skill.lifting", "skill.meds", "skill.doctor"],
-    availabilityType: ["common.partTime"],
-    hoursMin: 4,
-    hoursMax: 6,
-    rateMin: 600,
-    rateMax: 900,
-    paymentMethods: ["common.upi", "common.bank"],
-    serviceAreas: ["Vastrapur", "Bodakdev", "Thaltej"],
-    contactMethod: "common.appMessage",
-    bio: "Certified physiotherapist assistant. I help patients recover mobility after surgery or stroke and coordinate with doctors.",
-    days: ["mon", "wed", "fri", "sat"],
-    rating: 4.8,
-    reviews: [
-      {
-        id: "r9",
-        rating: 5,
-        comment: "My father is walking again thanks to Anil's daily sessions.",
-        seekerName: "Divya N.",
-        createdAt: Date.now() - 86400000 * 15,
-      },
-    ],
-    createdAt: Date.now() - 86400000 * 250,
-  },
-];
+// Cleaned database: 0 initial dummy workers
+const SEED_WORKERS: WorkerProfile[] = [];
 
-const SEED_SEEKERS: SeekerProfile[] = [
-  {
-    id: "s-asha",
-    fullName: "Asha Mehta",
-    phone: "9000000000",
-    city: "Ahmedabad",
-    area: "Bodakdev",
-    careFor: "parent",
-    persons: [
-      {
-        name: "Mrs. Mehta",
-        gender: "female",
-        ageRange: "71-80",
-        disabilities: ["dis.memory", "dis.heart"],
-        worksRequired: ["work.meds", "work.companion", "work.doctor"],
-      },
-    ],
-    timing: ["common.morning", "common.evening"],
-    days: ["mon", "tue", "wed", "thu", "fri", "sat"],
-    notes: "Prefers someone patient with memory care and medicine reminders.",
-    createdAt: Date.now() - 86400000 * 120,
-  },
-  {
-    id: "s-kavya",
-    fullName: "Kavya Desai",
-    phone: "9000000001",
-    city: "Ahmedabad",
-    area: "Navrangpura",
-    careFor: "self",
-    persons: [
-      {
-        name: "Kavya",
-        gender: "female",
-        ageRange: "60-70",
-        disabilities: ["dis.postsurgery"],
-        worksRequired: ["work.bathing", "work.physio", "work.companion"],
-      },
-    ],
-    timing: ["common.afternoon", "common.evening"],
-    days: ["mon", "tue", "wed", "thu", "fri"],
-    notes: "Needs short-term post-surgery support.",
-    createdAt: Date.now() - 86400000 * 90,
-  },
-];
+const SEED_SEEKERS: SeekerProfile[] = [];
 
-const SEED_AUTH_ACCOUNTS: AuthAccount[] = [
-  {
-    id: "acct-worker",
-    email: "worker@careconnect.local",
-    password: "password123",
-    me: {
-      id: "u-worker-demo",
-      fullName: "Ramesh Kumar",
-      phone: "9876543211",
-      city: "Ahmedabad",
-      area: "Maninagar",
-      role: "worker",
-      profileId: "w-ramesh",
-    },
-  },
-  {
-    id: "acct-seeker",
-    email: "seeker@careconnect.local",
-    password: "password123",
-    me: {
-      id: "u-seeker-demo",
-      fullName: "Asha Mehta",
-      phone: "9000000000",
-      city: "Ahmedabad",
-      area: "Bodakdev",
-      role: "seeker",
-      profileId: "s-asha",
-    },
-  },
-];
+const SEED_AUTH_ACCOUNTS: AuthAccount[] = [];
+
+export const clearDatabase = () => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(K.workers);
+    localStorage.removeItem(K.seekers);
+    localStorage.removeItem(K.requests);
+    localStorage.removeItem(K.messages);
+    localStorage.removeItem(K.accounts);
+    localStorage.removeItem(K.auth);
+    localStorage.removeItem(K.me);
+  }
+  storeCache[K.workers] = [];
+  storeCache[K.seekers] = [];
+  storeCache[K.requests] = [];
+  storeCache[K.messages] = [];
+  storeCache[K.accounts] = [];
+  storeCache[K.auth] = null;
+  storeCache[K.me] = null;
+  messageThreadCache = {};
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cc.store"));
+  }
+  notifyStoreListeners();
+};
+
+// Automatic one-time cleanup to clear any existing mock data from browser localStorage
+const STORE_RESET_KEY = "cc.db_cleaned_v1";
+if (typeof window !== "undefined") {
+  try {
+    if (!localStorage.getItem(STORE_RESET_KEY)) {
+      clearDatabase();
+      localStorage.setItem(STORE_RESET_KEY, "true");
+    }
+  } catch {}
+}
