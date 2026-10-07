@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { getWorker, getMe, addRequest, addReview, useStore, getRequests } from "@/lib/store";
-import { Star, MapPin, IndianRupee, Phone, Share2, Check } from "lucide-react";
+import { Star, MapPin, IndianRupee, Phone, Share2, Check, Lock } from "lucide-react";
 import { PrimaryButton, GhostButton, TextArea } from "@/components/form-bits";
 
 export const Route = createFileRoute("/profile/worker/$id")({
@@ -107,132 +107,176 @@ function WorkerProfilePage() {
               </div>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              {me?.role === "seeker" && !hasAcceptedRequest && (
-                <PrimaryButton onClick={request} disabled={requestSent}>
-                  {requestSent ? (
-                    <>
-                      <Check className="h-4 w-4" /> {t("card.requestSent")}
-                    </>
-                  ) : (
-                    t("card.requestCare")
+              {!me ? (
+                <Link
+                  to="/login"
+                  search={{ redirect: `/profile/worker/${worker.id}` }}
+                  className="inline-link inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+                >
+                  Log in to Connect
+                </Link>
+              ) : (
+                <>
+                  {me.role === "seeker" && (
+                    <PrimaryButton onClick={request} disabled={requestSent}>
+                      {requestSent ? (
+                        <>
+                          <Check className="h-4 w-4" /> {t("card.requestSent")}
+                        </>
+                      ) : (
+                        t("card.requestCare")
+                      )}
+                    </PrimaryButton>
                   )}
-                </PrimaryButton>
+                  {worker.contactMethod === "common.call" ? (
+                    <a
+                      href={`tel:+91${worker.phone}`}
+                      className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground hover:bg-accent"
+                    >
+                      {t("common.call")}
+                    </a>
+                  ) : (
+                    <Link
+                      to="/messages/$id"
+                      params={{ id: worker.id }}
+                      className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground hover:bg-accent"
+                    >
+                      {t("card.message")}
+                    </Link>
+                  )}
+                </>
               )}
-              {contactEnabled &&
-                (worker.contactMethod === "common.call" ? (
-                  <a
-                    href={`tel:+91${worker.phone}`}
-                    className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground hover:bg-accent"
-                  >
-                    {t("common.call")}
-                  </a>
-                ) : (
-                  <Link
-                    to="/messages/$id"
-                    params={{ id: worker.id }}
-                    className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground hover:bg-accent"
-                  >
-                    {t("card.message")}
-                  </Link>
-                ))}
             </div>
           </div>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2">
-            <Section title={t("profile.about")}>
-              <p className="text-foreground/80">{worker.bio || "—"}</p>
-            </Section>
-            <Section title={t("profile.skills")}>
-              <div className="flex flex-wrap gap-1.5">
-                {worker.skills.map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary"
-                  >
-                    {t(s)}
-                  </span>
-                ))}
+          {!me ? (
+            <div className="mt-8 rounded-2xl border border-primary/20 bg-primary-soft/30 p-6 sm:p-8 text-center shadow-soft">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Lock className="h-6 w-6" />
               </div>
-            </Section>
-            <Section title={t("profile.languages")}>
-              <p className="text-foreground/80">{worker.languages.join(", ")}</p>
-            </Section>
-            <Section title={t("profile.availability")}>
-              <p className="text-foreground/80">
-                {worker.availabilityType.map(t).join(", ")} · {worker.hoursMin}–{worker.hoursMax}{" "}
-                hrs
+              <h2 className="mt-4 text-xl font-bold text-foreground">
+                Log in to view full caregiver profile & contact details
+              </h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                To protect caregiver privacy and ensure verified connections, full experience details, phone number, and direct messaging are only accessible to registered members.
               </p>
-            </Section>
-            <Section title={t("profile.areas")}>
-              <p className="text-foreground/80">{worker.serviceAreas.join(", ")}</p>
-            </Section>
-            <Section title={t("card.contact")}>
-              <p className="inline-flex items-center gap-2 text-foreground/80">
-                <Phone className="h-4 w-4" /> +91 {worker.phone} · {t(worker.contactMethod)}
-              </p>
-            </Section>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-2">
-            <GhostButton onClick={share}>
-              <Share2 className="h-4 w-4" /> {copied ? t("profile.copied") : t("profile.shareLink")}
-            </GhostButton>
-          </div>
-        </div>
-
-        {/* Reviews */}
-        <div className="mt-8 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-8">
-          <h2 className="text-xl font-bold text-foreground">{t("profile.reviews")}</h2>
-          <div className="mt-4 space-y-3">
-            {worker.reviews.length === 0 && (
-              <p className="text-muted-foreground">{t("profile.noReviews")}</p>
-            )}
-            {worker.reviews.map((r) => (
-              <div key={r.id} className="rounded-xl border border-border bg-background p-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">{r.seekerName}</span>
-                  <span className="inline-flex text-primary">
-                    {Array.from({ length: r.rating }).map((_, i) => (
-                      <Star key={i} className="h-3.5 w-3.5 fill-current" />
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  to="/login"
+                  search={{ redirect: `/profile/worker/${worker.id}` }}
+                  className="inline-link rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+                >
+                  Log in to CareConnect
+                </Link>
+                <Link
+                  to="/onboarding"
+                  className="inline-link rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground hover:bg-accent"
+                >
+                  Create an account
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mt-8 grid gap-6 sm:grid-cols-2">
+                <Section title={t("profile.about")}>
+                  <p className="text-foreground/80">{worker.bio || "—"}</p>
+                </Section>
+                <Section title={t("profile.skills")}>
+                  <div className="flex flex-wrap gap-1.5">
+                    {worker.skills.map((s) => (
+                      <span
+                        key={s}
+                        className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary"
+                      >
+                        {t(s)}
+                      </span>
                     ))}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-foreground/80">{r.comment}</p>
+                  </div>
+                </Section>
+                <Section title={t("profile.languages")}>
+                  <p className="text-foreground/80">{worker.languages.join(", ")}</p>
+                </Section>
+                <Section title={t("profile.availability")}>
+                  <p className="text-foreground/80">
+                    {worker.availabilityType.map(t).join(", ")} · {worker.hoursMin}–{worker.hoursMax}{" "}
+                    hrs
+                  </p>
+                </Section>
+                <Section title={t("profile.areas")}>
+                  <p className="text-foreground/80">{worker.serviceAreas.join(", ")}</p>
+                </Section>
+                <Section title={t("card.contact")}>
+                  <p className="inline-flex items-center gap-2 text-foreground/80">
+                    <Phone className="h-4 w-4" /> +91 {worker.phone} · {t(worker.contactMethod)}
+                  </p>
+                </Section>
               </div>
-            ))}
-          </div>
 
-          {me && me.role === "seeker" && !reviewed && (
-            <div className="mt-6 border-t border-border pt-6">
-              <h3 className="font-bold text-foreground">{t("review.title")}</h3>
-              <div className="mt-3 flex gap-1">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setRating(n)}
-                    className="inline-link"
-                  >
-                    <Star
-                      className={`h-7 w-7 ${n <= rating ? "fill-primary text-primary" : "text-border"}`}
-                    />
-                  </button>
-                ))}
+              <div className="mt-6 flex flex-wrap gap-2">
+                <GhostButton onClick={share}>
+                  <Share2 className="h-4 w-4" /> {copied ? t("profile.copied") : t("profile.shareLink")}
+                </GhostButton>
               </div>
-              <TextArea
-                rows={3}
-                maxLength={200}
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder={t("review.placeholder")}
-                className="mt-3"
-              />
-              <PrimaryButton onClick={submitReview} className="mt-3">
-                {t("review.submit")}
-              </PrimaryButton>
-            </div>
+            </>
           )}
         </div>
+
+        {/* Reviews - only for registered users */}
+        {me && (
+          <div className="mt-8 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-8">
+            <h2 className="text-xl font-bold text-foreground">{t("profile.reviews")}</h2>
+            <div className="mt-4 space-y-3">
+              {worker.reviews.length === 0 && (
+                <p className="text-muted-foreground">{t("profile.noReviews")}</p>
+              )}
+              {worker.reviews.map((r) => (
+                <div key={r.id} className="rounded-xl border border-border bg-background p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground">{r.seekerName}</span>
+                    <span className="inline-flex text-primary">
+                      {Array.from({ length: r.rating }).map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-current" />
+                      ))}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-foreground/80">{r.comment}</p>
+                </div>
+              ))}
+            </div>
+
+            {me.role === "seeker" && !reviewed && (
+              <div className="mt-6 border-t border-border pt-6">
+                <h3 className="font-bold text-foreground">{t("review.title")}</h3>
+                <div className="mt-3 flex gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setRating(n)}
+                      className="inline-link"
+                    >
+                      <Star
+                        className={`h-7 w-7 ${n <= rating ? "fill-primary text-primary" : "text-border"}`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <TextArea
+                  rows={3}
+                  maxLength={200}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder={t("review.placeholder")}
+                  className="mt-3"
+                />
+                <PrimaryButton onClick={submitReview} className="mt-3">
+                  {t("review.submit")}
+                </PrimaryButton>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <SiteFooter />
     </div>

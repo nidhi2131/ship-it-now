@@ -6,6 +6,9 @@ import { FormCard, FieldLabel, TextInput, PrimaryButton } from "@/components/for
 import { login } from "@/lib/store";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
   head: () => ({ meta: [{ title: "Login — CareConnect" }] }),
   component: LoginPage,
 });
@@ -13,6 +16,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { t } = useI18n();
   const nav = useNavigate();
+  const { redirect } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
@@ -32,10 +36,16 @@ function LoginPage() {
         return;
       }
 
-      // Success - go to dashboard based on role
-      if (account.me.role === "worker") nav({ to: "/worker/dashboard" });
-      else if (account.me.role === "seeker") nav({ to: "/seeker/dashboard" });
-      else nav({ to: "/onboarding/role" });
+      // If redirect query is present, navigate back to target page
+      if (redirect && redirect.startsWith("/")) {
+        nav({ to: redirect as any });
+      } else if (account.me.role === "worker") {
+        nav({ to: "/worker/dashboard" });
+      } else if (account.me.role === "seeker") {
+        nav({ to: "/seeker/dashboard" });
+      } else {
+        nav({ to: "/onboarding/role" });
+      }
     } catch (e: any) {
       setErr(e.message || "Invalid email or password.");
     } finally {

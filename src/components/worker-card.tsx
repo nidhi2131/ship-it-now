@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Star, MapPin, IndianRupee, Languages } from "lucide-react";
 import { useI18n } from "@/lib/i18n/i18n";
-import type { WorkerProfile } from "@/lib/store";
+import { type WorkerProfile, getMe, useStore } from "@/lib/store";
 
 export function WorkerCard({ w }: { w: WorkerProfile }) {
   const { t } = useI18n();
@@ -15,6 +15,8 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
     w.experience === "fresher"
       ? t("common.fresher")
       : t("card.yearsExp").replace("{n}", w.experience);
+  const me = useStore(() => getMe());
+
   return (
     <article className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-warm">
       <div className="flex items-start gap-4">
@@ -64,28 +66,49 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
       </div>
 
       <div className="flex gap-2 pt-1">
-        <Link
-          to="/profile/worker/$id"
-          params={{ id: w.id }}
-          className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
-        >
-          {t("card.viewProfile")}
-        </Link>
-        {w.contactMethod === "common.call" ? (
-          <a
-            href={`tel:+91${w.phone}`}
-            className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
-          >
-            {t("common.call")}
-          </a>
+        {me ? (
+          <>
+            <Link
+              to="/profile/worker/$id"
+              params={{ id: w.id }}
+              className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+            >
+              {t("card.viewProfile")}
+            </Link>
+            {w.contactMethod === "common.call" ? (
+              <a
+                href={`tel:+91${w.phone}`}
+                className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+              >
+                {t("common.call")}
+              </a>
+            ) : (
+              <Link
+                to="/messages/$id"
+                params={{ id: w.id }}
+                className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+              >
+                {t("card.message")}
+              </Link>
+            )}
+          </>
         ) : (
-          <Link
-            to="/messages/$id"
-            params={{ id: w.id }}
-            className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
-          >
-            {t("card.message")}
-          </Link>
+          <>
+            <Link
+              to="/login"
+              search={{ redirect: `/profile/worker/${w.id}` }}
+              className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+            >
+              {t("card.viewProfile")}
+            </Link>
+            <Link
+              to="/login"
+              search={{ redirect: `/messages/${w.id}` }}
+              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+            >
+              {w.contactMethod === "common.call" ? t("common.call") : t("card.message")}
+            </Link>
+          </>
         )}
       </div>
     </article>

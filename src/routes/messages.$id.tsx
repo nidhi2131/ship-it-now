@@ -10,7 +10,8 @@ import {
   getSeeker,
   makeThreadKey,
   useStore,
-  hasAcceptedRequest,
+  addRequest,
+  getRequests,
 } from "@/lib/store";
 import { TextInput, PrimaryButton } from "@/components/form-bits";
 import { ArrowLeft, Send } from "lucide-react";
@@ -30,22 +31,28 @@ function MessageThread() {
   const endRef = useRef<HTMLDivElement>(null);
 
   const other = useStore(() => getWorker(id) ?? getSeeker(id));
-  const canMessage = me
-    ? me.role === "seeker"
-      ? hasAcceptedRequest(id, me.id)
-      : me.profileId
-        ? hasAcceptedRequest(me.profileId, id) || hasAcceptedRequest(id, me.id)
-        : false
-    : false;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs.length]);
 
-  const send = (e: React.FormEvent) => {
+  const send = async (e: React.FormEvent) => {
     e.preventDefault();
     const v = text.trim();
-    if (!v || !canMessage) return;
+    if (!v || !me) return;
+
+    if (me.role === "seeker") {
+      const allReqs = getRequests();
+      const existingReq = allReqs.find((r) => r.workerId === id && r.seekerId === me.id);
+      if (!existingReq) {
+        try {
+          await addRequest({ workerId: id, seekerId: me.id });
+        } catch (err) {
+          console.warn("Could not auto-create care request:", err);
+        }
+      }
+    }
+
     void addMessage(threadId, true, v);
     setText("");
   };
@@ -88,23 +95,42 @@ function MessageThread() {
           <div ref={endRef} />
         </div>
 
-        {!canMessage && me ? (
-          <div className="rounded-xl border border-dashed border-border bg-muted/40 p-3 text-center text-sm text-muted-foreground">
-            Request this contact first and wait for the worker to accept it before messaging.
+        {!me ? (
+          <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
+            <h3 className="text-base font-bold text-foreground">
+              Sign in to message {other?.fullName || "this caregiver"}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Create an account or log in to send direct messages and coordinate care.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to="/login"
+                search={{ redirect: `/messages/${id}` }}
+                className="inline-link rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/onboarding"
+                className="inline-link rounded-xl border border-border bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+              >
+                Get started
+              </Link>
+            </div>
           </div>
-        ) : null}
-
-        <form onSubmit={send} className="flex gap-2">
-          <TextInput
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={!canMessage}
-            placeholder={t("msg.placeholder")}
-          />
-          <PrimaryButton type="submit" aria-label={t("msg.send")} disabled={!canMessage} className="shrink-0">
-            <Send className="h-4 w-4" />
-          </PrimaryButton>
-        </form>
+        ) : (
+          <form onSubmit={send} className="flex gap-2">
+            <TextInput
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={t("msg.placeholder")}
+            />
+            <PrimaryButton type="submit" aria-label={t("msg.send")} className="shrink-0">
+              <Send className="h-4 w-4" />
+            </PrimaryButton>
+          </form>
+        )}
       </div>
     </div>
   );
