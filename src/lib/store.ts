@@ -184,6 +184,9 @@ function write<T>(key: string, val: T) {
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
+export const isValidUuid = (id?: string | null): boolean =>
+  Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id));
+
 // --- Me (current user) ---
 export type Me = {
   id: string;
@@ -218,7 +221,18 @@ export const getCurrentAccount = () => {
 export const login = async (email: string, password: string) => {
   const normalizedEmail = email.toLowerCase().trim();
 
-  if (isSupabaseConfigured) {
+  // 1. Check local accounts first (instant login for demo accounts or registered local accounts)
+  const localAccount = getAuthAccounts().find(
+    (item) => item.email.toLowerCase() === normalizedEmail && item.password === password,
+  );
+  if (localAccount) {
+    write(K.auth, { accountId: localAccount.id, loggedInAt: Date.now() });
+    setMe(localAccount.me);
+    return localAccount;
+  }
+
+  // 2. Try Supabase Auth if not a local domain account (.local)
+  if (isSupabaseConfigured && !normalizedEmail.endsWith(".local")) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
@@ -260,15 +274,7 @@ export const login = async (email: string, password: string) => {
     }
   }
 
-  // Fallback to local accounts (matches seed accounts & local onboarding)
-  const account = getAuthAccounts().find(
-    (item) => item.email.toLowerCase() === normalizedEmail && item.password === password,
-  );
-  if (!account) return null;
-
-  write(K.auth, { accountId: account.id, loggedInAt: Date.now() });
-  setMe(account.me);
-  return account;
+  return null;
 };
 
 export const logout = async () => {
@@ -300,9 +306,10 @@ export const register = async (email: string, password: string, meData: Omit<Me,
   const normalizedEmail = email.toLowerCase().trim();
   let userId = uid();
 
+  const isLocalDomain = normalizedEmail.endsWith(".local");
   const isRateLimited = Date.now() < supabaseRateLimitedUntil;
 
-  if (isSupabaseConfigured && !isRateLimited) {
+  if (isSupabaseConfigured && !isRateLimited && !isLocalDomain) {
     try {
       const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
@@ -318,11 +325,14 @@ export const register = async (email: string, password: string, meData: Omit<Me,
       });
 
       if (error) {
-        if (error.status === 429 || error.message?.toLowerCase().includes("rate limit")) {
-          supabaseRateLimitedUntil = Date.now() + 10 * 60 * 1000;
-        } else {
-          throw error;
+        if (
+          error.status === 429 ||
+          error.message?.toLowerCase().includes("rate limit") ||
+          (error as any).code === "over_email_send_rate_limit"
+        ) {
+          supabaseRateLimitedUntil = Date.now() + 15 * 60 * 1000;
         }
+        console.warn("Supabase signup notice, proceeding with local fallback:", error.message);
       } else {
         if (data?.user?.id) {
           userId = data.user.id;
@@ -330,21 +340,22 @@ export const register = async (email: string, password: string, meData: Omit<Me,
 
         // If a session was returned directly, create the Supabase profile row
         if (data?.session) {
-          await supabase.from("profiles").upsert({
-            id: userId,
-            full_name: meData.fullName,
-            phone: meData.phone,
-            city: meData.city,
-            area: meData.area,
-          });
+          try {
+            await supabase.from("profiles").upsert({
+              id: userId,
+              full_name: meData.fullName,
+              phone: meData.phone,
+              city: meData.city,
+              area: meData.area,
+            });
+          } catch {}
         }
       }
     } catch (err: any) {
       if (err?.status === 429 || err?.message?.toLowerCase().includes("rate limit")) {
-        supabaseRateLimitedUntil = Date.now() + 10 * 60 * 1000;
-      } else if (err?.status && err.status >= 400 && err.code !== "over_email_send_rate_limit") {
-        throw err;
+        supabaseRateLimitedUntil = Date.now() + 15 * 60 * 1000;
       }
+      console.warn("Supabase signup notice, proceeding with local registration:", err?.message || err);
     }
   }
 
@@ -425,7 +436,7 @@ export const upsertSeeker = async (s: SeekerProfile) => {
   if (isSupabaseConfigured) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.user) {
+      if (sessionData?.session?.user && isValidUuid(s.id)) {
         await supabase.from("seeker_profiles").upsert({
           id: s.id,
           full_name: s.fullName,
@@ -440,7 +451,7 @@ export const upsertSeeker = async (s: SeekerProfile) => {
           created_at: new Date(s.createdAt).toISOString(),
         });
 
-        if (me) {
+        if (me && isValidUuid(me.id)) {
           await supabase
             .from("profiles")
             .update({ profile_id: s.id, role: "seeker" })
@@ -477,7 +488,7 @@ export const upsertWorker = async (w: WorkerProfile) => {
   if (isSupabaseConfigured) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.user) {
+      if (sessionData?.session?.user && isValidUuid(w.id)) {
         await supabase.from("worker_profiles").upsert({
           id: w.id,
           full_name: w.fullName,
@@ -504,7 +515,7 @@ export const upsertWorker = async (w: WorkerProfile) => {
           created_at: new Date(w.createdAt).toISOString(),
         });
 
-        if (me) {
+        if (me && isValidUuid(me.id)) {
           await supabase
             .from("profiles")
             .update({ profile_id: w.id, role: "worker" })
@@ -526,7 +537,7 @@ export const addRequest = async (
   r: Omit<Request, "id" | "createdAt" | "status"> & { initiatorId?: string },
 ) => {
   let createdReq: Request | null = null;
-  if (isSupabaseConfigured) {
+  if (isSupabaseConfigured && isValidUuid(r.workerId) && isValidUuid(r.seekerId)) {
     try {
       const { data, error } = await supabase
         .from("care_requests")
@@ -577,7 +588,7 @@ export const updateRequestStatus = async (
   seekerId: string,
   newStatus: Request["status"],
 ) => {
-  if (isSupabaseConfigured) {
+  if (isSupabaseConfigured && isValidUuid(workerId) && isValidUuid(seekerId)) {
     try {
       await supabase
         .from("care_requests")
@@ -626,13 +637,13 @@ export const addMessage = async (threadId: string, fromMe: boolean, content: str
   let messageId = uid();
   let createdAt = Date.now();
 
-  if (isSupabaseConfigured && me) {
-    try {
-      const [firstId, secondId] = parseThreadKey(threadId);
-      const otherId = me.id === firstId ? secondId : firstId;
-      const seekerId = me.role === "seeker" ? me.id : otherId;
-      const workerId = me.role === "worker" ? me.id : otherId;
+  const [firstId, secondId] = parseThreadKey(threadId);
+  const otherId = me ? (me.id === firstId ? secondId : firstId) : secondId;
+  const seekerId = me?.role === "seeker" ? me.id : otherId;
+  const workerId = me?.role === "worker" ? me.id : otherId;
 
+  if (isSupabaseConfigured && me && isValidUuid(me.id) && isValidUuid(seekerId) && isValidUuid(workerId)) {
+    try {
       const { data: thread } = await supabase
         .from("message_threads")
         .upsert(
@@ -685,35 +696,39 @@ export const addReview = async (
   comment: string,
   seekerName: string,
 ) => {
-  if (isSupabaseConfigured) {
-    const me = getMe();
-    if (!me) return;
-    const { data, error } = await supabase
-      .from("reviews")
-      .insert({
-        worker_id: workerId,
-        seeker_id: me.id,
-        rating,
-        comment,
-        seeker_name: seekerName,
-      })
-      .select("id, worker_id, seeker_id, rating, comment, seeker_name, created_at");
-    if (error) throw error;
+  const me = getMe();
+  if (isSupabaseConfigured && me && isValidUuid(workerId) && isValidUuid(me.id)) {
+    try {
+      const { data, error } = await supabase
+        .from("reviews")
+        .insert({
+          worker_id: workerId,
+          seeker_id: me.id,
+          rating,
+          comment,
+          seeker_name: seekerName,
+        })
+        .select("id, worker_id, seeker_id, rating, comment, seeker_name, created_at");
 
-    const all = getWorkers();
-    const w = all.find((x) => x.id === workerId);
-    if (w) {
-      w.reviews.push({
-        id: data?.[0]?.id ?? uid(),
-        rating,
-        comment,
-        seekerName,
-        createdAt: data?.[0]?.created_at ? new Date(data[0].created_at).getTime() : Date.now(),
-      });
-      w.rating = w.reviews.reduce((a, r) => a + r.rating, 0) / w.reviews.length;
-      write(K.workers, all);
+      if (!error && data?.[0]) {
+        const all = getWorkers();
+        const w = all.find((x) => x.id === workerId);
+        if (w) {
+          w.reviews.push({
+            id: data[0].id,
+            rating,
+            comment,
+            seekerName,
+            createdAt: data[0].created_at ? new Date(data[0].created_at).getTime() : Date.now(),
+          });
+          w.rating = w.reviews.reduce((a, r) => a + r.rating, 0) / w.reviews.length;
+          write(K.workers, all);
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn("Supabase addReview fallback to local:", err);
     }
-    return;
   }
 
   const all = getWorkers();
