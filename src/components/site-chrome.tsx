@@ -1,8 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Globe, Heart } from "lucide-react";
+import { Globe, Heart, Bell } from "lucide-react";
 import { useI18n, type Locale } from "@/lib/i18n/i18n";
 import { useState } from "react";
-import { getMe, useStore, logout } from "@/lib/store";
+import { getMe, getRequests, useStore, logout } from "@/lib/store";
 
 const langs: { code: Locale; label: string }[] = [
   { code: "en", label: "English" },
@@ -14,8 +14,28 @@ export function SiteHeader() {
   const { t, locale, setLocale } = useI18n();
   const [open, setOpen] = useState(false);
   const me = useStore(() => getMe());
+  const requests = useStore(() => getRequests());
   const nav = useNavigate();
   const current = langs.find((l) => l.code === locale)!;
+
+  const pendingNotifsCount = me
+    ? requests.filter((r) => {
+        if (r.status !== "pending") return false;
+        if (me.role === "worker") {
+          return (
+            (r.workerId === me.id || r.workerId === me.profileId) &&
+            r.initiatorId !== me.id
+          );
+        }
+        if (me.role === "seeker") {
+          return (
+            (r.seekerId === me.id || r.seekerId === me.profileId) &&
+            r.initiatorId !== me.id
+          );
+        }
+        return false;
+      }).length
+    : 0;
 
   const handleLogout = async () => {
     try {
@@ -54,12 +74,40 @@ export function SiteHeader() {
               {t("nav.dashboard")}
             </Link>
           )}
-          <Link
-            to="/search"
-            className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
-          >
-            {t("nav.search")}
-          </Link>
+
+          {/* Pending Notification Bell for logged-in users */}
+          {me && (
+            <Link
+              to={me.role === "worker" ? "/worker/dashboard" : "/seeker/dashboard"}
+              className="relative inline-flex items-center justify-center rounded-lg border border-border bg-card p-2 text-foreground/80 hover:bg-accent hover:text-foreground shadow-soft"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+              {pendingNotifsCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground animate-pulse">
+                  {pendingNotifsCount}
+                </span>
+              )}
+            </Link>
+          )}
+
+          {me?.role === "worker" ? (
+            <Link
+              to="/search"
+              search={{ tab: "requests" }}
+              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
+            >
+              Care Requests
+            </Link>
+          ) : (
+            <Link
+              to="/search"
+              search={{ tab: "caregivers" }}
+              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
+            >
+              {t("nav.search")}
+            </Link>
+          )}
 
           {/* Language selector button */}
           <div className="relative">

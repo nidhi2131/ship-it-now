@@ -31,7 +31,11 @@ function WorkerProfilePage() {
 
   if (!worker) return <div className="p-8 text-center text-muted-foreground">Not found</div>;
   const requestRecord = me
-    ? requests.find((r) => r.workerId === worker.id && r.seekerId === me.id)
+    ? requests.find(
+        (r) =>
+          (r.workerId === worker.id || r.workerId === worker.phone) &&
+          (r.seekerId === me.id || r.seekerId === me.profileId),
+      )
     : null;
   const hasRequested = Boolean(requestRecord);
   const hasAcceptedRequest = me
@@ -40,7 +44,7 @@ function WorkerProfilePage() {
       requestRecord?.status === "completed"
     : false;
   const requestSent = hasRequested || isRequesting;
-  const contactEnabled = me?.role === "seeker" ? hasAcceptedRequest : true;
+  const contactEnabled = me ? true : false;
   const initials = worker.fullName
     .split(" ")
     .map((s) => s[0])
@@ -64,7 +68,7 @@ function WorkerProfilePage() {
     if (requestSent) return;
     setIsRequesting(true);
     try {
-      await addRequest({ workerId: worker.id, seekerId: me.id });
+      await addRequest({ workerId: worker.id, seekerId: me.id, initiatorId: me.id });
     } catch {
       setIsRequesting(false);
     }

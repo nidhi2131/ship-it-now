@@ -1,8 +1,10 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
-import { getSeeker, getMe, useStore } from "@/lib/store";
-import { MapPin, Phone, Lock } from "lucide-react";
+import { getSeeker, getMe, useStore, addRequest, getRequests } from "@/lib/store";
+import { MapPin, Phone, Lock, Check } from "lucide-react";
+import { PrimaryButton } from "@/components/form-bits";
+import { useState } from "react";
 
 export const Route = createFileRoute("/profile/seeker/$id")({
   head: () => ({ meta: [{ title: "Care request — CareConnect" }] }),
@@ -19,7 +21,36 @@ function SeekerProfilePage() {
   const { t } = useI18n();
   const seeker = useStore(() => getSeeker(id));
   const me = useStore(() => getMe());
+  const requests = useStore(() => getRequests());
+  const [isSendingOffer, setIsSendingOffer] = useState(false);
+
   if (!seeker) return <div className="p-8 text-center text-muted-foreground">Not found</div>;
+
+  const workerProfileId = me?.profileId || me?.id || "";
+  const existingReq = me
+    ? requests.find(
+        (r) =>
+          r.seekerId === seeker.id &&
+          (r.workerId === workerProfileId || r.workerId === me.id),
+      )
+    : null;
+  const offerSent = Boolean(existingReq) || isSendingOffer;
+
+  const sendOffer = async () => {
+    if (!me) return;
+    setIsSendingOffer(true);
+    try {
+      await addRequest({
+        workerId: workerProfileId,
+        seekerId: seeker.id,
+        initiatorId: me.id,
+      });
+    } catch (err) {
+      console.warn(err);
+    } finally {
+      setIsSendingOffer(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background" suppressHydrationWarning>
@@ -125,13 +156,26 @@ function SeekerProfilePage() {
                 <span className="inline-flex items-center gap-2 text-sm text-foreground">
                   <Phone className="h-4 w-4" /> +91 {seeker.phone}
                 </span>
-                <Link
-                  to="/messages/$id"
-                  params={{ id: seeker.id }}
-                  className="inline-link ml-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:brightness-110"
-                >
-                  {t("card.contact")}
-                </Link>
+                <div className="ml-auto flex items-center gap-2">
+                  {me.role === "worker" && (
+                    <PrimaryButton onClick={sendOffer} disabled={offerSent}>
+                      {offerSent ? (
+                        <>
+                          <Check className="h-4 w-4" /> Offer Sent
+                        </>
+                      ) : (
+                        "Send Care Offer"
+                      )}
+                    </PrimaryButton>
+                  )}
+                  <Link
+                    to="/messages/$id"
+                    params={{ id: seeker.id }}
+                    className="inline-link rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-accent"
+                  >
+                    {t("card.message")}
+                  </Link>
+                </div>
               </div>
             </div>
           )}

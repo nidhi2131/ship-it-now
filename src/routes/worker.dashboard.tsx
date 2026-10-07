@@ -138,15 +138,26 @@ function WorkerDash() {
 
           {tab === "dash.notifications" &&
             (() => {
-              if (!me?.profileId)
+              const workerKey = me?.profileId || me?.id;
+              if (!workerKey)
                 return (
                   <Empty
                     icon={<Bell className="mx-auto h-10 w-10 text-primary/40" />}
                     msg={t("dash.noNotif")}
                   />
                 );
-              const incoming = requests.filter((request) => request.workerId === me.profileId);
-              if (incoming.length === 0) {
+
+              const myReqs = requests.filter(
+                (request) =>
+                  request.workerId === workerKey ||
+                  request.workerId === me.id ||
+                  (me.profileId && request.workerId === me.profileId),
+              );
+
+              const incoming = myReqs.filter((r) => r.initiatorId !== me.id);
+              const outgoing = myReqs.filter((r) => r.initiatorId === me.id);
+
+              if (incoming.length === 0 && outgoing.length === 0) {
                 return (
                   <Empty
                     icon={<Bell className="mx-auto h-10 w-10 text-primary/40" />}
@@ -156,49 +167,129 @@ function WorkerDash() {
               }
 
               return (
-                <div className="space-y-3">
-                  {incoming.map((request) => {
-                    const seeker = getSeekers().find((item) => item.id === request.seekerId);
-                    if (!seeker) return null;
+                <div className="space-y-6">
+                  {incoming.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-bold uppercase tracking-wide text-primary">
+                        Incoming Care Requests ({incoming.length})
+                      </h3>
+                      {incoming.map((request) => {
+                        const seeker = getSeekers().find(
+                          (item) => item.id === request.seekerId || item.id === request.seekerId,
+                        );
+                        const isAccepted =
+                          request.status === "responded" ||
+                          request.status === "hired" ||
+                          request.status === "completed";
 
-                    return (
-                      <div
-                        key={request.id}
-                        className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 shadow-soft"
-                      >
-                        <div>
-                          <h3 className="font-semibold text-foreground">{seeker.fullName}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {seeker.area}, {seeker.city}
-                          </p>
-                          <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-                            {request.status}
-                          </p>
-                        </div>
-                        {request.status !== "responded" &&
-                        request.status !== "hired" &&
-                        request.status !== "completed" ? (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              await updateRequestStatus(
-                                request.workerId,
-                                request.seekerId,
-                                "responded",
-                              );
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+                        return (
+                          <div
+                            key={request.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
                           >
-                            <Check className="h-4 w-4" /> Accept
-                          </button>
-                        ) : (
-                          <span className="rounded-full bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary">
-                            Accepted
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                            <div>
+                              <h4 className="font-semibold text-foreground">
+                                {seeker?.fullName || "Family Care Request"}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {seeker ? `${seeker.area}, ${seeker.city}` : "Care recipient"}
+                              </p>
+                              <div className="mt-1 flex items-center gap-2">
+                                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                  {new Date(request.createdAt).toLocaleDateString()}
+                                </span>
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                  isAccepted
+                                    ? "bg-primary-soft text-primary"
+                                    : "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
+                                }`}>
+                                  {isAccepted ? "Accepted" : "Needs Response"}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!isAccepted ? (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await updateRequestStatus(
+                                      request.workerId,
+                                      request.seekerId,
+                                      "responded",
+                                    );
+                                  }}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-110"
+                                >
+                                  <Check className="h-4 w-4" /> Accept Request
+                                </button>
+                              ) : (
+                                <span className="rounded-full bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary">
+                                  Accepted
+                                </span>
+                              )}
+                              <Link
+                                to="/messages/$id"
+                                params={{ id: request.seekerId }}
+                                className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                              >
+                                Message
+                              </Link>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {outgoing.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                        Offers Sent by You ({outgoing.length})
+                      </h3>
+                      {outgoing.map((request) => {
+                        const seeker = getSeekers().find(
+                          (item) => item.id === request.seekerId,
+                        );
+                        const isAccepted =
+                          request.status === "responded" ||
+                          request.status === "hired" ||
+                          request.status === "completed";
+
+                        return (
+                          <div
+                            key={request.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
+                          >
+                            <div>
+                              <h4 className="font-semibold text-foreground">
+                                {seeker?.fullName || "Family Care Request"}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {seeker ? `${seeker.area}, ${seeker.city}` : "Care recipient"}
+                              </p>
+                              <span className="mt-1 inline-block text-xs uppercase tracking-wide text-muted-foreground">
+                                Status: {isAccepted ? "Accepted by family" : "Pending family response"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                                isAccepted ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground"
+                              }`}>
+                                {isAccepted ? "Accepted" : "Waiting"}
+                              </span>
+                              <Link
+                                to="/messages/$id"
+                                params={{ id: request.seekerId }}
+                                className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                              >
+                                Message
+                              </Link>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })()}

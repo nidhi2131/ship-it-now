@@ -3,8 +3,8 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { WorkerCard } from "@/components/worker-card";
-import { getMe, getWorkers, getRequests, getWorker, useStore } from "@/lib/store";
-import { Heart } from "lucide-react";
+import { getMe, getWorkers, getRequests, getWorker, useStore, updateRequestStatus } from "@/lib/store";
+import { Heart, Check, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/seeker/dashboard")({
   head: () => ({ meta: [{ title: "Your dashboard — CareConnect" }] }),
@@ -37,7 +37,11 @@ function SeekerDash() {
     );
   }
 
-  const myRequests = requests.filter((r) => r.seekerId === me.id);
+  const myRequests = requests.filter(
+    (r) => r.seekerId === me.id || (me.profileId && r.seekerId === me.profileId),
+  );
+  const incomingOffers = myRequests.filter((r) => r.initiatorId !== me.id);
+  const outgoingRequests = myRequests.filter((r) => r.initiatorId === me.id);
 
   return (
     <div className="min-h-screen bg-background" suppressHydrationWarning>
@@ -86,42 +90,111 @@ function SeekerDash() {
             (myRequests.length === 0 ? (
               <Empty msg={t("dash.noRequests")} />
             ) : (
-              <div className="space-y-3">
-                {myRequests.map((r) => {
-                  const w = getWorker(r.workerId);
-                  if (!w) return null;
-                  const canContact =
-                    r.status === "responded" || r.status === "hired" || r.status === "completed";
-                  return (
-                    <div
-                      key={r.id}
-                      className="flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-soft"
-                    >
-                      <div>
-                        <h4 className="font-semibold text-foreground">{w.fullName}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(r.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <StatusBadge status={r.status} />
-                        {canContact ? (
-                          <Link
-                            to="/messages/$id"
-                            params={{ id: w.id }}
-                            className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
-                          >
-                            {t("card.message")}
-                          </Link>
-                        ) : (
-                          <span className="rounded-lg border border-dashed border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Waiting
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="space-y-6">
+                {incomingOffers.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-primary">
+                      Care Offers from Caregivers ({incomingOffers.length})
+                    </h3>
+                    {incomingOffers.map((r) => {
+                      const w = getWorker(r.workerId);
+                      const isAccepted =
+                        r.status === "responded" || r.status === "hired" || r.status === "completed";
+
+                      return (
+                        <div
+                          key={r.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
+                        >
+                          <div>
+                            <h4 className="font-semibold text-foreground">
+                              {w?.fullName || "Caregiver"}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {w ? `${w.area}, ${w.city}` : "Caregiver"}
+                            </p>
+                            <span className="mt-1 inline-block text-xs uppercase tracking-wide text-muted-foreground">
+                              {new Date(r.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!isAccepted ? (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await updateRequestStatus(
+                                    r.workerId,
+                                    r.seekerId,
+                                    "responded",
+                                  );
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-110"
+                              >
+                                <Check className="h-4 w-4" /> Accept Offer
+                              </button>
+                            ) : (
+                              <span className="rounded-full bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary">
+                                Accepted
+                              </span>
+                            )}
+                            <Link
+                              to="/messages/$id"
+                              params={{ id: r.workerId }}
+                              className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                            >
+                              {t("card.message")}
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {outgoingRequests.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                      Care Requests Sent by You ({outgoingRequests.length})
+                    </h3>
+                    {outgoingRequests.map((r) => {
+                      const w = getWorker(r.workerId);
+                      const canContact =
+                        r.status === "responded" || r.status === "hired" || r.status === "completed";
+
+                      return (
+                        <div
+                          key={r.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
+                        >
+                          <div>
+                            <h4 className="font-semibold text-foreground">
+                              {w?.fullName || "Caregiver"}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(r.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <StatusBadge status={r.status} />
+                            {canContact ? (
+                              <Link
+                                to="/messages/$id"
+                                params={{ id: r.workerId }}
+                                className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                              >
+                                {t("card.message")}
+                              </Link>
+                            ) : (
+                              <span className="rounded-lg border border-dashed border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Waiting for Caregiver
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
 

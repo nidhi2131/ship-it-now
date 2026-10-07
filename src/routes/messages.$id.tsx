@@ -43,10 +43,29 @@ function MessageThread() {
 
     if (me.role === "seeker") {
       const allReqs = getRequests();
-      const existingReq = allReqs.find((r) => r.workerId === id && r.seekerId === me.id);
+      const existingReq = allReqs.find(
+        (r) =>
+          (r.workerId === id || r.workerId === other?.phone) &&
+          (r.seekerId === me.id || r.seekerId === me.profileId),
+      );
       if (!existingReq) {
         try {
-          await addRequest({ workerId: id, seekerId: me.id });
+          await addRequest({ workerId: id, seekerId: me.id, initiatorId: me.id });
+        } catch (err) {
+          console.warn("Could not auto-create care request:", err);
+        }
+      }
+    } else if (me.role === "worker") {
+      const allReqs = getRequests();
+      const workerProfileId = me.profileId || me.id;
+      const existingReq = allReqs.find(
+        (r) =>
+          (r.workerId === workerProfileId || r.workerId === me.id) &&
+          (r.seekerId === id || r.seekerId === other?.phone),
+      );
+      if (!existingReq) {
+        try {
+          await addRequest({ workerId: workerProfileId, seekerId: id, initiatorId: me.id });
         } catch (err) {
           console.warn("Could not auto-create care request:", err);
         }

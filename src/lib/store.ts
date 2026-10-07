@@ -67,6 +67,7 @@ export type Request = {
   id: string;
   workerId: string;
   seekerId: string;
+  initiatorId?: string;
   status: "pending" | "responded" | "hired" | "completed";
   createdAt: number;
 };
@@ -106,6 +107,24 @@ let storeVersion = 0;
 let isEvaluatingServerSnapshot = false;
 let messageThreadCache: Record<string, Message[]> = {};
 const storeCache: Record<string, any> = {};
+
+let broadcastBus: BroadcastChannel | null = null;
+if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
+  try {
+    broadcastBus = new BroadcastChannel("cc_realtime_bus");
+    broadcastBus.onmessage = (e) => {
+      const { key, val } = e.data || {};
+      if (key) {
+        storeCache[key] = val;
+        storeVersion++;
+        if (key === K.messages) {
+          messageThreadCache = {};
+        }
+        notifyStoreListeners();
+      }
+    };
+  } catch {}
+}
 
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
@@ -153,7 +172,12 @@ function write<T>(key: string, val: T) {
     messageThreadCache = {};
   }
   if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(val));
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {}
+  try {
+    broadcastBus?.postMessage({ key, val });
+  } catch {}
   window.dispatchEvent(new Event("cc.store"));
   notifyStoreListeners();
 }
@@ -498,42 +522,52 @@ export const getSeeker = (id: string) => getSeekers().find((s) => s.id === id);
 
 // --- Requests ---
 export const getRequests = () => read<Request[]>(K.requests, []);
-export const addRequest = async (r: Omit<Request, "id" | "createdAt" | "status">) => {
+export const addRequest = async (
+  r: Omit<Request, "id" | "createdAt" | "status"> & { initiatorId?: string },
+) => {
+  let createdReq: Request | null = null;
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase
-      .from("care_requests")
-      .upsert(
-        {
-          worker_id: r.workerId,
-          seeker_id: r.seekerId,
-          status: "pending",
-        },
-        { onConflict: "worker_id,seeker_id" },
-      )
-      .select("id, worker_id, seeker_id, status, created_at");
-    if (error) throw error;
+    try {
+      const { data, error } = await supabase
+        .from("care_requests")
+        .upsert(
+          {
+            worker_id: r.workerId,
+            seeker_id: r.seekerId,
+            status: "pending",
+          },
+          { onConflict: "worker_id,seeker_id" },
+        )
+        .select("id, worker_id, seeker_id, status, created_at");
 
-    const req: Request = {
-      id: data?.[0]?.id ?? uid(),
-      workerId: r.workerId,
-      seekerId: r.seekerId,
-      status: (data?.[0]?.status as Request["status"]) ?? "pending",
-      createdAt: data?.[0]?.created_at ? new Date(data[0].created_at).getTime() : Date.now(),
-    };
-
-    const all = getRequests();
-    const idx = all.findIndex(
-      (item) => item.workerId === req.workerId && item.seekerId === req.seekerId,
-    );
-    if (idx >= 0) all[idx] = req;
-    else all.push(req);
-    write(K.requests, all);
-    return req;
+      if (!error && data?.[0]) {
+        createdReq = {
+          id: data[0].id,
+          workerId: r.workerId,
+          seekerId: r.seekerId,
+          initiatorId: r.initiatorId,
+          status: (data[0].status as Request["status"]) ?? "pending",
+          createdAt: data[0].created_at ? new Date(data[0].created_at).getTime() : Date.now(),
+        };
+      }
+    } catch (err) {
+      console.warn("Supabase addRequest notice, using local store:", err);
+    }
   }
 
   const all = getRequests();
-  const req: Request = { ...r, id: uid(), status: "pending", createdAt: Date.now() };
-  all.push(req);
+  const req: Request = createdReq ?? {
+    ...r,
+    id: uid(),
+    status: "pending",
+    createdAt: Date.now(),
+  };
+
+  const idx = all.findIndex(
+    (item) => item.workerId === req.workerId && item.seekerId === req.seekerId,
+  );
+  if (idx >= 0) all[idx] = req;
+  else all.unshift(req);
   write(K.requests, all);
   return req;
 };
@@ -544,16 +578,23 @@ export const updateRequestStatus = async (
   newStatus: Request["status"],
 ) => {
   if (isSupabaseConfigured) {
-    const { error } = await supabase
-      .from("care_requests")
-      .update({ status: newStatus })
-      .eq("worker_id", workerId)
-      .eq("seeker_id", seekerId);
-    if (error) throw error;
+    try {
+      await supabase
+        .from("care_requests")
+        .update({ status: newStatus })
+        .eq("worker_id", workerId)
+        .eq("seeker_id", seekerId);
+    } catch (err) {
+      console.warn("Supabase updateRequestStatus notice:", err);
+    }
   }
 
   const all = getRequests();
-  const req = all.find((item) => item.workerId === workerId && item.seekerId === seekerId);
+  const req = all.find(
+    (item) =>
+      (item.workerId === workerId && item.seekerId === seekerId) ||
+      (item.workerId === seekerId && item.seekerId === workerId),
+  );
   if (req) {
     req.status = newStatus;
     write(K.requests, all);
@@ -581,54 +622,59 @@ export const getMessages = (threadId: string): Message[] => {
   return filtered;
 };
 export const addMessage = async (threadId: string, fromMe: boolean, content: string) => {
-  if (isSupabaseConfigured) {
-    const me = getMe();
-    if (!me) return;
-    const [firstId, secondId] = parseThreadKey(threadId);
-    const otherId = me.id === firstId ? secondId : firstId;
-    const seekerId = me.role === "seeker" ? me.id : otherId;
-    const workerId = me.role === "worker" ? me.id : otherId;
+  const me = getMe();
+  let messageId = uid();
+  let createdAt = Date.now();
 
-    const { data: thread, error: threadErr } = await supabase
-      .from("message_threads")
-      .upsert(
-        {
-          pair_key: threadId,
-          seeker_id: seekerId,
-          worker_id: workerId,
-        },
-        { onConflict: "pair_key" },
-      )
-      .select("id, pair_key")
-      .single();
-    if (threadErr) throw threadErr;
+  if (isSupabaseConfigured && me) {
+    try {
+      const [firstId, secondId] = parseThreadKey(threadId);
+      const otherId = me.id === firstId ? secondId : firstId;
+      const seekerId = me.role === "seeker" ? me.id : otherId;
+      const workerId = me.role === "worker" ? me.id : otherId;
 
-    const { data, error } = await supabase
-      .from("messages")
-      .insert({
-        thread_id: thread.id,
-        sender_id: me.id,
-        content,
-      })
-      .select("id, thread_id, content, created_at");
-    if (error) throw error;
+      const { data: thread } = await supabase
+        .from("message_threads")
+        .upsert(
+          {
+            pair_key: threadId,
+            seeker_id: seekerId,
+            worker_id: workerId,
+          },
+          { onConflict: "pair_key" },
+        )
+        .select("id, pair_key")
+        .single();
 
-    const all = read<Message[]>(K.messages, []);
-    all.push({
-      id: data?.[0]?.id ?? uid(),
-      threadId,
-      fromMe,
-      senderId: me.id,
-      content,
-      createdAt: data?.[0]?.created_at ? new Date(data[0].created_at).getTime() : Date.now(),
-    });
-    write(K.messages, all);
-    return;
+      if (thread?.id) {
+        const { data } = await supabase
+          .from("messages")
+          .insert({
+            thread_id: thread.id,
+            sender_id: me.id,
+            content,
+          })
+          .select("id, thread_id, content, created_at");
+
+        if (data?.[0]) {
+          messageId = data[0].id;
+          createdAt = new Date(data[0].created_at).getTime();
+        }
+      }
+    } catch (err) {
+      console.warn("Supabase addMessage fallback to local:", err);
+    }
   }
 
   const all = read<Message[]>(K.messages, []);
-  const me = getMe();
-  all.push({ id: uid(), threadId, fromMe, senderId: me?.id, content, createdAt: Date.now() });
+  all.push({
+    id: messageId,
+    threadId,
+    fromMe,
+    senderId: me?.id,
+    content,
+    createdAt,
+  });
   write(K.messages, all);
 };
 
@@ -865,6 +911,63 @@ if (isSupabaseConfigured) {
   };
 
   fetchDb();
+
+  // Subscribe to Supabase Realtime changes for real-time client & server updates
+  if (typeof window !== "undefined") {
+    try {
+      supabase
+        .channel("careconnect_live_sync")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "care_requests" },
+          (payload: any) => {
+            const rec = payload.new;
+            if (rec && rec.id) {
+              const all = getRequests();
+              const mapped: Request = {
+                id: rec.id,
+                workerId: rec.worker_id,
+                seekerId: rec.seeker_id,
+                status: rec.status,
+                createdAt: rec.created_at ? new Date(rec.created_at).getTime() : Date.now(),
+              };
+              const idx = all.findIndex(
+                (r) =>
+                  r.id === mapped.id ||
+                  (r.workerId === mapped.workerId && r.seekerId === mapped.seekerId),
+              );
+              if (idx >= 0) all[idx] = mapped;
+              else all.unshift(mapped);
+              write(K.requests, all);
+            }
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "messages" },
+          (payload: any) => {
+            const rec = payload.new;
+            if (rec && rec.id) {
+              const all = read<Message[]>(K.messages, []);
+              if (!all.some((m) => m.id === rec.id)) {
+                all.push({
+                  id: rec.id,
+                  threadId: rec.thread_id,
+                  fromMe: false,
+                  senderId: rec.sender_id,
+                  content: rec.content,
+                  createdAt: rec.created_at ? new Date(rec.created_at).getTime() : Date.now(),
+                });
+                write(K.messages, all);
+              }
+            }
+          },
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("Realtime subscription notice:", err);
+    }
+  }
 }
 
 function isShallowOrDeepEqual(a: any, b: any): boolean {
