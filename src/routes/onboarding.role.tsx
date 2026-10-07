@@ -26,7 +26,9 @@ function RolePick() {
       <SiteHeader />
       <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
         <StepIndicator step={2} />
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{t("role.title")}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          {t("role.title")}
+        </h1>
         <p className="mt-2 text-muted-foreground">{t("role.sub")}</p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -47,7 +49,10 @@ function RolePick() {
         </div>
 
         <div className="mt-8">
-          <Link to="/onboarding" className="inline-link inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link
+            to="/onboarding"
+            className="inline-link inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> {t("onb.back")}
           </Link>
         </div>
@@ -57,9 +62,17 @@ function RolePick() {
 }
 
 function RoleCard({
-  tone, icon, title, body, onClick,
+  tone,
+  icon,
+  title,
+  body,
+  onClick,
 }: {
-  tone: "primary" | "secondary"; icon: React.ReactNode; title: string; body: string; onClick: () => void;
+  tone: "primary" | "secondary";
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -69,9 +82,13 @@ function RoleCard({
         tone === "primary" ? "hover:border-primary" : "hover:border-secondary"
       }`}
     >
-      <div className={`mb-4 inline-grid h-14 w-14 place-items-center rounded-2xl shadow-warm ${
-        tone === "primary" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
-      }`}>
+      <div
+        className={`mb-4 inline-grid h-14 w-14 place-items-center rounded-2xl shadow-warm ${
+          tone === "primary"
+            ? "bg-primary text-primary-foreground"
+            : "bg-secondary text-secondary-foreground"
+        }`}
+      >
         {icon}
       </div>
       <h3 className="text-lg font-bold text-foreground">{title}</h3>

@@ -5,7 +5,9 @@ export function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
   const { t } = useI18n();
   return (
     <div className="mb-6">
-      <div className="text-sm font-medium text-primary">{t("step.of").replace("{n}", String(step))}</div>
+      <div className="text-sm font-medium text-primary">
+        {t("step.of").replace("{n}", String(step))}
+      </div>
       <div className="mt-2 flex gap-1.5">
         {[1, 2, 3].map((s) => (
           <div
@@ -23,7 +25,9 @@ export function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
 export function FormCard({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8">{children}</div>
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8">
+        {children}
+      </div>
     </div>
   );
 }

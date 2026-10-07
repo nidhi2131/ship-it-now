@@ -12,7 +12,8 @@ const I18nCtx = createContext<Ctx>({ locale: "en", setLocale: () => {}, t: (k) =
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
   useEffect(() => {
-    const saved = (typeof window !== "undefined" && localStorage.getItem("cc.locale")) as Locale | null;
+    const saved = (typeof window !== "undefined" &&
+      localStorage.getItem("cc.locale")) as Locale | null;
     if (saved && dicts[saved]) setLocaleState(saved);
   }, []);
   const setLocale = (l: Locale) => {

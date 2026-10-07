@@ -1,13 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
-import { Heart, Search, MessageCircle, ShieldCheck, MapPin, Languages, Award, ArrowRight } from "lucide-react";
+import {
+  Heart,
+  Search,
+  MessageCircle,
+  ShieldCheck,
+  MapPin,
+  Languages,
+  Award,
+  ArrowRight,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "CareConnect — Trusted elder care, close to home" },
-      { name: "description", content: "Find someone you can trust to be there every day. Browse experienced, local caregivers in your language." },
+      {
+        name: "description",
+        content:
+          "Find someone you can trust to be there every day. Browse experienced, local caregivers in your language.",
+      },
     ],
   }),
   component: Landing,
@@ -91,7 +104,9 @@ function Landing() {
 
       {/* How it works */}
       <section className="mx-auto max-w-6xl px-6 py-20">
-        <h2 className="text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{t("how.title")}</h2>
+        <h2 className="text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          {t("how.title")}
+        </h2>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {[
             { i: Search, k: "how.s1" },
@@ -136,25 +151,45 @@ function Landing() {
 }
 
 function FeatureCard({
-  name, area, tag, quote, rating, accent, offset,
+  name,
+  area,
+  tag,
+  quote,
+  rating,
+  accent,
+  offset,
 }: {
-  name: string; area: string; tag: string; quote: string; rating: number;
-  accent: "primary" | "secondary"; offset?: boolean;
+  name: string;
+  area: string;
+  tag: string;
+  quote: string;
+  rating: number;
+  accent: "primary" | "secondary";
+  offset?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border border-border bg-card p-5 shadow-warm ${offset ? "sm:ml-12" : ""}`}>
+    <div
+      className={`rounded-2xl border border-border bg-card p-5 shadow-warm ${offset ? "sm:ml-12" : ""}`}
+    >
       <div className="flex items-center gap-3">
-        <div className={`grid h-12 w-12 place-items-center rounded-xl font-bold text-primary-foreground ${
-          accent === "primary" ? "bg-primary" : "bg-secondary"
-        }`}>
-          {name.split(" ").map((p) => p[0]).join("")}
+        <div
+          className={`grid h-12 w-12 place-items-center rounded-xl font-bold text-primary-foreground ${
+            accent === "primary" ? "bg-primary" : "bg-secondary"
+          }`}
+        >
+          {name
+            .split(" ")
+            .map((p) => p[0])
+            .join("")}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
             <h4 className="truncate font-bold text-foreground">{name}</h4>
             <span className="text-sm font-semibold text-primary">★ {rating.toFixed(1)}</span>
           </div>
-          <p className="text-xs text-muted-foreground">{area} · {tag}</p>
+          <p className="text-xs text-muted-foreground">
+            {area} · {tag}
+          </p>
         </div>
       </div>
       <p className="mt-3 text-sm italic text-foreground/80">"{quote}"</p>

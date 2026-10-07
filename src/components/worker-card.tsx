@@ -5,8 +5,16 @@ import type { WorkerProfile } from "@/lib/store";
 
 export function WorkerCard({ w }: { w: WorkerProfile }) {
   const { t } = useI18n();
-  const initials = w.fullName.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-  const expLabel = w.experience === "fresher" ? t("common.fresher") : t("card.yearsExp").replace("{n}", w.experience);
+  const initials = w.fullName
+    .split(" ")
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const expLabel =
+    w.experience === "fresher"
+      ? t("common.fresher")
+      : t("card.yearsExp").replace("{n}", w.experience);
   return (
     <article className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-warm">
       <div className="flex items-start gap-4">
@@ -27,7 +35,10 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
 
       <div className="flex flex-wrap gap-1.5">
         {w.skills.slice(0, 3).map((s) => (
-          <span key={s} className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
+          <span
+            key={s}
+            className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground"
+          >
             {t(s)}
           </span>
         ))}
@@ -46,7 +57,9 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
         <span className="inline-flex items-center gap-0.5 font-semibold text-foreground">
           <IndianRupee className="h-3.5 w-3.5" />
           {w.rateMin}–{w.rateMax}
-          <span className="ml-1 text-xs font-normal text-muted-foreground">/ {t("card.perDay")}</span>
+          <span className="ml-1 text-xs font-normal text-muted-foreground">
+            / {t("card.perDay")}
+          </span>
         </span>
       </div>
 
@@ -58,13 +71,22 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
         >
           {t("card.viewProfile")}
         </Link>
-        <Link
-          to="/messages/$id"
-          params={{ id: w.id }}
-          className="inline-link flex-1 rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
-        >
-          {t("card.message")}
-        </Link>
+        {w.contactMethod === "common.call" ? (
+          <a
+            href={`tel:+91${w.phone}`}
+            className="inline-link flex-1 rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+          >
+            {t("common.call")}
+          </a>
+        ) : (
+          <Link
+            to="/messages/$id"
+            params={{ id: w.id }}
+            className="inline-link flex-1 rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+          >
+            {t("card.message")}
+          </Link>
+        )}
       </div>
     </article>
   );

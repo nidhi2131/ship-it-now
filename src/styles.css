@@ -34,7 +34,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --shadow-soft: 0 2px 8px -2px oklch(0.2 0.05 40 / 0.08), 0 4px 24px -8px oklch(0.2 0.05 40 / 0.06);
+  --shadow-soft:
+    0 2px 8px -2px oklch(0.2 0.05 40 / 0.08), 0 4px 24px -8px oklch(0.2 0.05 40 / 0.06);
   --shadow-warm: 0 8px 32px -8px oklch(0.65 0.2 40 / 0.18);
 }
 
@@ -69,27 +70,56 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { font-family: var(--font-sans); }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    font-family: var(--font-sans);
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; }
-  button, a, input, select, textarea { min-height: 44px; }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
   /* Override for inline elements where 44px doesn't make sense */
-  .inline-link, label input, label select { min-height: 0; }
+  .inline-link,
+  label input,
+  label select {
+    min-height: 0;
+  }
 }
 
 @layer utilities {
-  .shadow-soft { box-shadow: var(--shadow-soft); }
-  .shadow-warm { box-shadow: var(--shadow-warm); }
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  .shadow-warm {
+    box-shadow: var(--shadow-warm);
+  }
   .gradient-warm {
     background: linear-gradient(135deg, oklch(0.97 0.04 60) 0%, oklch(0.95 0.05 30) 100%);
   }
   .gradient-hero {
-    background: linear-gradient(160deg, oklch(0.98 0.02 70) 0%, oklch(0.94 0.06 50) 60%, oklch(0.96 0.05 30) 100%);
+    background: linear-gradient(
+      160deg,
+      oklch(0.98 0.02 70) 0%,
+      oklch(0.94 0.06 50) 60%,
+      oklch(0.96 0.05 30) 100%
+    );
   }
 }

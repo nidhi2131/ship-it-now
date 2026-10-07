@@ -1,8 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Globe, Heart } from "lucide-react";
 import { useI18n, type Locale } from "@/lib/i18n/i18n";
 import { useState } from "react";
-import { getMe, useStore } from "@/lib/store";
+import { getMe, useStore, logout } from "@/lib/store";
 
 const langs: { code: Locale; label: string }[] = [
   { code: "en", label: "English" },
@@ -14,7 +14,18 @@ export function SiteHeader() {
   const { t, locale, setLocale } = useI18n();
   const [open, setOpen] = useState(false);
   const me = useStore(() => getMe());
+  const nav = useNavigate();
   const current = langs.find((l) => l.code === locale)!;
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      nav({ to: "/" });
+    } catch (err) {
+      console.error("Logout error:", err);
+      nav({ to: "/" });
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
@@ -49,6 +60,23 @@ export function SiteHeader() {
           >
             {t("nav.search")}
           </Link>
+          {me && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 sm:inline-flex"
+            >
+              Logout
+            </button>
+          )}
+          {!me && (
+            <Link
+              to="/login"
+              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-primary hover:text-primary/80 sm:inline-flex"
+            >
+              Log in
+            </Link>
+          )}
 
           <div className="relative">
             <button
@@ -70,9 +98,14 @@ export function SiteHeader() {
                 {langs.map((l) => (
                   <button
                     key={l.code}
-                    onClick={() => { setLocale(l.code); setOpen(false); }}
+                    onClick={() => {
+                      setLocale(l.code);
+                      setOpen(false);
+                    }}
                     className={`block w-full px-4 py-2.5 text-left text-sm hover:bg-accent ${
-                      l.code === locale ? "bg-primary-soft font-semibold text-primary" : "text-foreground"
+                      l.code === locale
+                        ? "bg-primary-soft font-semibold text-primary"
+                        : "text-foreground"
                     }`}
                   >
                     {l.label}
