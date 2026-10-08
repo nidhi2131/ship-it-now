@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Star, MapPin, IndianRupee, Languages } from "lucide-react";
 import { useI18n } from "@/lib/i18n/i18n";
-import { type WorkerProfile, getMe, useStore } from "@/lib/store";
+import { type WorkerProfile, getMe, useStore, hasAcceptedRequest } from "@/lib/store";
 
 export function WorkerCard({ w }: { w: WorkerProfile }) {
   const { t } = useI18n();
@@ -16,6 +16,7 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
       ? t("common.fresher")
       : t("card.yearsExp").replace("{n}", w.experience);
   const me = useStore(() => getMe());
+  const isConnected = useStore(() => (me ? hasAcceptedRequest(w.id, me.id) : false));
 
   return (
     <article className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-warm">
@@ -88,7 +89,7 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
                 params={{ id: w.id }}
                 className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
               >
-                {t("card.message")}
+                {isConnected ? t("card.message") : "Connect"}
               </Link>
             )}
           </>
@@ -106,7 +107,7 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
               search={{ redirect: `/messages/${w.id}` }}
               className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
             >
-              {w.contactMethod === "common.call" ? t("common.call") : t("card.message")}
+              {w.contactMethod === "common.call" ? t("common.call") : "Connect"}
             </Link>
           </>
         )}

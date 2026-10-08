@@ -16,10 +16,24 @@ import {
   isValidUuid,
   useStore,
   addRequest,
-  getRequests,
+  updateRequestStatus,
+  getRequestBetween,
+  syncMessagesForThread,
+  syncCareRequests,
 } from "@/lib/store";
 import { TextInput, PrimaryButton } from "@/components/form-bits";
-import { ArrowLeft, Send, CheckCheck, User } from "lucide-react";
+import {
+  ArrowLeft,
+  Send,
+  CheckCheck,
+  User,
+  ShieldAlert,
+  Clock,
+  Check,
+  UserPlus,
+  Lock,
+  MessageSquare,
+} from "lucide-react";
 
 export const Route = createFileRoute("/messages/$id")({
   head: () => ({ meta: [{ title: "Messages — CareConnect" }] }),
@@ -51,6 +65,17 @@ function MessageThread() {
   const otherSeeker = useStore(() => getSeeker(otherParticipantId));
   const other = otherWorker ?? otherSeeker;
 
+  // Strict Connection Gate: get care request between me and other party
+  const req = useStore(() =>
+    me && otherParticipantId ? getRequestBetween(me.id, otherParticipantId) : undefined,
+  );
+  const isAccepted = Boolean(
+    req && (req.status === "responded" || req.status === "hired" || req.status === "completed"),
+  );
+  const isIncoming = Boolean(
+    req && (req.initiatorId ? req.initiatorId !== me?.id : me?.role === "worker"),
+  );
+
   useEffect(() => {
     if (!other && otherParticipantId && isValidUuid(otherParticipantId)) {
       void fetchWorkerById(otherParticipantId).then((w) => {
@@ -59,6 +84,21 @@ function MessageThread() {
     }
   }, [otherParticipantId, other]);
 
+  // Real-time synchronization hook: pull Supabase messages and care request status
+  useEffect(() => {
+    if (!threadId) return;
+    void syncMessagesForThread(threadId);
+    void syncCareRequests();
+
+    // High-frequency 2.5s fallback to guarantee instantaneous cross-client messaging
+    const interval = setInterval(() => {
+      void syncMessagesForThread(threadId);
+      void syncCareRequests();
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [threadId, otherParticipantId]);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs.length]);
@@ -66,30 +106,35 @@ function MessageThread() {
   const send = (e: React.FormEvent) => {
     e.preventDefault();
     const v = text.trim();
-    if (!v || !me) return;
+    if (!v || !me || !isAccepted) return;
 
     setText("");
     void addMessage(threadId, true, v);
+  };
 
-    // Ensure care_request exists in the background without overwriting existing status
-    const allReqs = getRequests();
+  const handleSendRequest = () => {
+    if (!me) return;
     const isSeeker = me.role === "seeker";
     const workerProfileId = isSeeker ? otherParticipantId : me.profileId || me.id;
     const seekerProfileId = isSeeker ? me.profileId || me.id : otherParticipantId;
 
-    const existingReq = allReqs.find(
-      (r) =>
-        (r.workerId === workerProfileId && r.seekerId === seekerProfileId) ||
-        (r.workerId === seekerProfileId && r.seekerId === workerProfileId),
-    );
-
-    if (!existingReq && isValidUuid(workerProfileId) && isValidUuid(seekerProfileId)) {
+    if (isValidUuid(workerProfileId) && isValidUuid(seekerProfileId)) {
       void addRequest({
         workerId: workerProfileId,
         seekerId: seekerProfileId,
         initiatorId: me.id,
       });
     }
+  };
+
+  const handleAcceptRequest = () => {
+    if (!req) return;
+    void updateRequestStatus(req.workerId, req.seekerId, "responded");
+  };
+
+  const handleDeclineRequest = () => {
+    if (!req) return;
+    void updateRequestStatus(req.workerId, req.seekerId, "cancelled");
   };
 
   const mine = (message: (typeof msgs)[number]) =>
@@ -139,22 +184,56 @@ function MessageThread() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 shrink-0">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Real-Time</span>
-          </div>
+
+          {/* Connection Status Badge */}
+          {!me ? (
+            <div className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground shrink-0">
+              <Lock className="h-3.5 w-3.5" />
+              <span>Login Required</span>
+            </div>
+          ) : isAccepted ? (
+            <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 shrink-0">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Connected · Live</span>
+            </div>
+          ) : req && req.status === "pending" ? (
+            <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 shrink-0">
+              <Clock className="h-3.5 w-3.5 animate-spin text-amber-600" />
+              <span>Pending Acceptance</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground shrink-0">
+              <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Connection Required</span>
+            </div>
+          )}
         </div>
 
         {/* Messages Stream */}
         <div className="flex min-h-[50vh] flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-soft overflow-y-auto">
           {msgs.length === 0 && (
             <div className="m-auto flex flex-col items-center gap-2 text-center text-muted-foreground py-8">
-              <User className="h-10 w-10 text-primary/30" />
-              <p className="max-w-xs text-sm">
-                No messages yet. Say hello to start coordinating care!
-              </p>
+              {isAccepted ? (
+                <>
+                  <MessageSquare className="h-10 w-10 text-primary/30" />
+                  <p className="max-w-xs text-sm font-medium text-foreground">
+                    You are connected!
+                  </p>
+                  <p className="max-w-xs text-xs text-muted-foreground">
+                    Say hello to start coordinating care details.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <User className="h-10 w-10 text-primary/30" />
+                  <p className="max-w-xs text-sm">
+                    No messages yet. Connect and accept request to start exchanging messages.
+                  </p>
+                </>
+              )}
             </div>
           )}
+
           {msgs.map((m) => {
             const isMine = mine(m);
             const timeStr = m.createdAt
@@ -192,13 +271,14 @@ function MessageThread() {
           <div ref={endRef} />
         </div>
 
+        {/* Bottom Action Area: Connection Gate or Live Chat Input */}
         {!me ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
             <h3 className="text-base font-bold text-foreground">
-              Sign in to message {other?.fullName || "this caregiver"}
+              Sign in to message {other?.fullName || "this user"}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create an account or log in to send direct messages and coordinate care.
+              Create an account or log in to send requests and coordinate care.
             </p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -216,6 +296,98 @@ function MessageThread() {
               </Link>
             </div>
           </div>
+        ) : !isAccepted ? (
+          /* Strictly enforce connection gate */
+          !req ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-6 text-center dark:border-amber-900/50 dark:bg-amber-950/20 shadow-soft">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <h3 className="mt-3 text-base font-bold text-foreground">
+                Connection Required Before Chatting
+              </h3>
+              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                To protect caregivers and families from unsolicited messages, direct chat requires an invitation request to be accepted first.
+              </p>
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleSendRequest}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 active:scale-95"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  {me.role === "seeker"
+                    ? "Send Care Request to Connect"
+                    : "Send Care Offer to Connect"}
+                </button>
+              </div>
+            </div>
+          ) : req.status === "pending" ? (
+            isIncoming ? (
+              <div className="rounded-2xl border border-primary/30 bg-primary-soft/40 p-6 text-center shadow-soft">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <UserPlus className="h-6 w-6" />
+                </div>
+                <h3 className="mt-3 text-base font-bold text-foreground">
+                  Incoming Connection Request
+                </h3>
+                <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                  <strong>{other?.fullName || "This user"}</strong> has invited you to connect. Accept the request below to unlock live real-time messaging!
+                </p>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAcceptRequest}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition-all hover:bg-emerald-700 active:scale-95"
+                  >
+                    <Check className="h-4 w-4" />
+                    Accept Request & Unlock Chat
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeclineRequest}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-6 text-center dark:border-blue-900/50 dark:bg-blue-950/20 shadow-soft">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
+                  <Clock className="h-6 w-6 animate-pulse" />
+                </div>
+                <h3 className="mt-3 text-base font-bold text-foreground">
+                  Connection Request Pending
+                </h3>
+                <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                  Your invitation has been sent to{" "}
+                  <strong>{other?.fullName || "this user"}</strong>. Once they accept, this chat will instantly unlock for both of you!
+                </p>
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-blue-100/70 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-ping" />
+                  Waiting for recipient acceptance...
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="rounded-2xl border border-muted bg-muted/30 p-6 text-center shadow-soft">
+              <h3 className="text-base font-bold text-foreground">
+                Request Closed
+              </h3>
+              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                The connection request is inactive. You can send a new request to connect.
+              </p>
+              <button
+                type="button"
+                onClick={handleSendRequest}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 active:scale-95"
+              >
+                <UserPlus className="h-4 w-4" />
+                Send New Connection Request
+              </button>
+            </div>
+          )
         ) : (
           <form onSubmit={send} className="flex gap-2">
             <TextInput

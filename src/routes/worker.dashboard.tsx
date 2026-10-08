@@ -9,6 +9,7 @@ import {
   getRequests,
   useStore,
   updateRequestStatus,
+  hasAcceptedRequest,
 } from "@/lib/store";
 import { Star, MapPin, Bell, User, Check } from "lucide-react";
 
@@ -128,7 +129,7 @@ function WorkerDash() {
                         params={{ id: s.id }}
                         className="inline-link flex-1 rounded-lg bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-soft hover:brightness-110"
                       >
-                        {t("card.contact")}
+                        {hasAcceptedRequest(me.id, s.id) ? t("card.message") : "Connect"}
                       </Link>
                     </div>
                   </div>
