@@ -154,8 +154,8 @@ function WorkerDash() {
                   (me.profileId && request.workerId === me.profileId),
               );
 
-              const incoming = myReqs.filter((r) => r.initiatorId !== me.id);
-              const outgoing = myReqs.filter((r) => r.initiatorId === me.id);
+              const incoming = myReqs.filter((r) => (r.initiatorId ? r.initiatorId !== me.id : true));
+              const outgoing = myReqs.filter((r) => (r.initiatorId ? r.initiatorId === me.id : false));
 
               if (incoming.length === 0 && outgoing.length === 0) {
                 return (
@@ -175,7 +175,7 @@ function WorkerDash() {
                       </h3>
                       {incoming.map((request) => {
                         const seeker = getSeekers().find(
-                          (item) => item.id === request.seekerId || item.id === request.seekerId,
+                          (item) => item.id === request.seekerId || item.phone === request.seekerId,
                         );
                         const isAccepted =
                           request.status === "responded" ||
@@ -211,14 +211,14 @@ function WorkerDash() {
                               {!isAccepted ? (
                                 <button
                                   type="button"
-                                  onClick={async () => {
-                                    await updateRequestStatus(
+                                  onClick={() => {
+                                    void updateRequestStatus(
                                       request.workerId,
                                       request.seekerId,
                                       "responded",
                                     );
                                   }}
-                                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-110"
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-110 active:scale-95 transition-all"
                                 >
                                   <Check className="h-4 w-4" /> Accept Request
                                 </button>

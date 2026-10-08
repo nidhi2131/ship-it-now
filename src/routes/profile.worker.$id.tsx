@@ -98,18 +98,14 @@ function WorkerProfilePage() {
     } catch {}
   };
 
-  const request = async () => {
+  const request = () => {
     if (!me) {
       nav({ to: "/onboarding" });
       return;
     }
     if (requestSent) return;
     setIsRequesting(true);
-    try {
-      await addRequest({ workerId: worker.id, seekerId: me.id, initiatorId: me.id });
-    } catch {
-      setIsRequesting(false);
-    }
+    void addRequest({ workerId: worker.id, seekerId: me.id, initiatorId: me.id });
   };
 
   const submitReview = () => {

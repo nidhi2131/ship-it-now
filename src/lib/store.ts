@@ -88,16 +88,80 @@ export type Thread = {
   workerId: string;
 };
 
-export const makeThreadKey = (firstId: string, secondId: string) =>
-  `thread:${[firstId, secondId].sort().join("::")}`;
-
-const parseThreadKey = (threadKey: string) => {
+export const parseThreadKey = (threadKey: string): [string, string] => {
   if (threadKey.startsWith("thread:")) {
     const raw = threadKey.slice("thread:".length);
     const parts = raw.split("::");
-    if (parts.length === 2) return parts as [string, string];
+    if (parts.length === 2) return [parts[0], parts[1]];
   }
-  return [threadKey, threadKey] as [string, string];
+  return [threadKey, threadKey];
+};
+
+export const makeThreadKey = (firstId: string, secondId: string) => {
+  const cleanA = firstId.startsWith("thread:") ? parseThreadKey(firstId)[0] : firstId;
+  const cleanB = secondId.startsWith("thread:") ? parseThreadKey(secondId)[1] : secondId;
+  return `thread:${[cleanA, cleanB].sort().join("::")}`;
+};
+
+export const getConversationKeys = (inputKey: string, meId?: string | null): Set<string> => {
+  const keys = new Set<string>();
+  if (!inputKey) return keys;
+  keys.add(inputKey);
+
+  const allThreads = getThreads();
+
+  // If inputKey is a thread UUID
+  const threadByUuid = allThreads.find((t) => t.id === inputKey);
+  if (threadByUuid) {
+    keys.add(threadByUuid.id);
+    keys.add(threadByUuid.pairKey);
+    const [p1, p2] = parseThreadKey(threadByUuid.pairKey);
+    if (p1 && p2) {
+      keys.add(`thread:${p1}::${p2}`);
+      keys.add(`thread:${p2}::${p1}`);
+    }
+  }
+
+  // If inputKey is a pair key
+  if (inputKey.startsWith("thread:")) {
+    const [p1, p2] = parseThreadKey(inputKey);
+    if (p1 && p2) {
+      keys.add(`thread:${p1}::${p2}`);
+      keys.add(`thread:${p2}::${p1}`);
+      allThreads.forEach((t) => {
+        if (
+          t.pairKey === `thread:${p1}::${p2}` ||
+          t.pairKey === `thread:${p2}::${p1}` ||
+          (t.seekerId === p1 && t.workerId === p2) ||
+          (t.seekerId === p2 && t.workerId === p1)
+        ) {
+          keys.add(t.id);
+          keys.add(t.pairKey);
+        }
+      });
+    }
+  } else if (meId && inputKey !== meId) {
+    const sorted = `thread:${[meId, inputKey].sort().join("::")}`;
+    const reverse = `thread:${inputKey}::${meId}`;
+    const direct = `thread:${meId}::${inputKey}`;
+    keys.add(sorted);
+    keys.add(reverse);
+    keys.add(direct);
+    allThreads.forEach((t) => {
+      if (
+        t.pairKey === sorted ||
+        t.pairKey === reverse ||
+        t.pairKey === direct ||
+        (t.seekerId === meId && t.workerId === inputKey) ||
+        (t.seekerId === inputKey && t.workerId === meId)
+      ) {
+        keys.add(t.id);
+        keys.add(t.pairKey);
+      }
+    });
+  }
+
+  return keys;
 };
 
 const K = {
@@ -637,25 +701,39 @@ export const getThreads = (): Thread[] => {
 
 // --- Requests ---
 export const getRequests = () => read<Request[]>(K.requests, []);
+
 export const addRequest = async (
   r: Omit<Request, "id" | "createdAt" | "status"> & { initiatorId?: string },
 ) => {
   const all = getRequests();
+  const existing = all.find(
+    (item) =>
+      (item.workerId === r.workerId && item.seekerId === r.seekerId) ||
+      (item.workerId === r.seekerId && item.seekerId === r.workerId),
+  );
+
+  // If request exists and has already been responded/accepted/hired, preserve status!
+  if (existing && existing.status !== "pending") {
+    return existing;
+  }
+
   const req: Request = {
     ...r,
-    id: uid(),
+    id: existing?.id || uid(),
     status: "pending",
-    createdAt: Date.now(),
+    createdAt: existing?.createdAt || Date.now(),
   };
 
   const idx = all.findIndex(
-    (item) => item.workerId === req.workerId && item.seekerId === req.seekerId,
+    (item) =>
+      (item.workerId === req.workerId && item.seekerId === req.seekerId) ||
+      (item.workerId === req.seekerId && item.seekerId === req.workerId),
   );
   if (idx >= 0) all[idx] = req;
   else all.unshift(req);
-  write(K.requests, all);
+  write(K.requests, [...all]);
 
-  // Background sync to Supabase
+  // Background sync to Supabase (non-blocking)
   if (isSupabaseConfigured && isValidUuid(r.workerId) && isValidUuid(r.seekerId)) {
     (async () => {
       try {
@@ -674,14 +752,16 @@ export const addRequest = async (
         if (!error && data?.[0]) {
           const current = getRequests();
           const target = current.find(
-            (item) => item.workerId === r.workerId && item.seekerId === r.seekerId,
+            (item) =>
+              (item.workerId === r.workerId && item.seekerId === r.seekerId) ||
+              (item.workerId === r.seekerId && item.seekerId === r.workerId),
           );
           if (target) {
             target.id = data[0].id;
             target.createdAt = data[0].created_at
               ? new Date(data[0].created_at).getTime()
               : target.createdAt;
-            write(K.requests, current);
+            write(K.requests, [...current]);
           }
         }
       } catch (err) {
@@ -698,6 +778,7 @@ export const updateRequestStatus = async (
   seekerId: string,
   newStatus: Request["status"],
 ) => {
+  // 1. Instant Optimistic local update (0ms UI feedback)
   const all = getRequests();
   const req = all.find(
     (item) =>
@@ -706,9 +787,10 @@ export const updateRequestStatus = async (
   );
   if (req) {
     req.status = newStatus;
-    write(K.requests, all);
+    write(K.requests, [...all]);
   }
 
+  // 2. Background sync to Supabase (non-blocking)
   if (isSupabaseConfigured && isValidUuid(workerId) && isValidUuid(seekerId)) {
     try {
       await supabase
@@ -737,33 +819,10 @@ export const hasAcceptedRequest = (workerId: string, seekerId: string) => {
 export const getMessages = (threadId: string): Message[] => {
   if (isEvaluatingServerSnapshot) return [];
   const me = getMe();
-  const allThreads = getThreads();
-
-  const matchingKeys = new Set<string>();
-  matchingKeys.add(threadId);
-
-  // If threadId is "thread:A::B" or a Supabase thread UUID
-  const matchedThread = allThreads.find(
-    (t) => t.pairKey === threadId || t.id === threadId,
-  );
-  if (matchedThread) {
-    matchingKeys.add(matchedThread.pairKey);
-    matchingKeys.add(matchedThread.id);
-  }
-
-  // If threadId is other person's profile id or phone
-  if (me) {
-    const pairKey = makeThreadKey(me.id, threadId);
-    matchingKeys.add(pairKey);
-    const byPair = allThreads.find((t) => t.pairKey === pairKey);
-    if (byPair) {
-      matchingKeys.add(byPair.id);
-      matchingKeys.add(byPair.pairKey);
-    }
-  }
+  const keys = getConversationKeys(threadId, me?.id);
 
   const all = read<Message[]>(K.messages, []);
-  return all.filter((m) => matchingKeys.has(m.threadId));
+  return all.filter((m) => keys.has(m.threadId));
 };
 
 export const addMessage = async (threadId: string, fromMe: boolean, content: string) => {
@@ -773,20 +832,23 @@ export const addMessage = async (threadId: string, fromMe: boolean, content: str
 
   const [firstId, secondId] = parseThreadKey(threadId);
   const otherId = me ? (me.id === firstId ? secondId : firstId) : secondId;
-  const seekerId = me?.role === "seeker" ? me.id : otherId;
-  const workerId = me?.role === "worker" ? me.id : otherId;
+  const isMeSeeker = me?.role === "seeker" || Boolean(getSeeker(me?.id || ""));
+  const seekerId = isMeSeeker ? me?.id || otherId : otherId;
+  const workerId = isMeSeeker ? otherId : me?.id || otherId;
+
+  const canonicalPairKey = makeThreadKey(firstId, secondId);
 
   // 1. Instant Optimistic local push (0ms latency)
   const all = read<Message[]>(K.messages, []);
   all.push({
     id: messageId,
-    threadId,
+    threadId: canonicalPairKey,
     fromMe: true,
     senderId: me?.id,
     content,
     createdAt,
   });
-  write(K.messages, all);
+  write(K.messages, [...all]);
 
   // 2. Background sync to Supabase
   if (isSupabaseConfigured && me && isValidUuid(me.id) && isValidUuid(seekerId) && isValidUuid(workerId)) {
@@ -796,7 +858,7 @@ export const addMessage = async (threadId: string, fromMe: boolean, content: str
           .from("message_threads")
           .upsert(
             {
-              pair_key: threadId,
+              pair_key: canonicalPairKey,
               seeker_id: seekerId,
               worker_id: workerId,
             },
@@ -816,7 +878,7 @@ export const addMessage = async (threadId: string, fromMe: boolean, content: str
           };
           if (tIdx >= 0) threads[tIdx] = tObj;
           else threads.push(tObj);
-          write(K.threads, threads);
+          write(K.threads, [...threads]);
 
           const { data } = await supabase
             .from("messages")
@@ -834,9 +896,10 @@ export const addMessage = async (threadId: string, fromMe: boolean, content: str
               currentMsgs[mIdx] = {
                 ...currentMsgs[mIdx],
                 id: data[0].id,
+                threadId: thread.pair_key,
                 createdAt: new Date(data[0].created_at).getTime(),
               };
-              write(K.messages, currentMsgs);
+              write(K.messages, [...currentMsgs]);
             }
           }
         }
@@ -1022,36 +1085,6 @@ if (isSupabaseConfigured) {
       });
 
       const localWorkers = read<WorkerProfile[]>(K.workers, []);
-      for (const w of localWorkers) {
-        if (!mappedWorkers.some((sw: WorkerProfile) => sw.id === w.id)) {
-          supabase.from("worker_profiles").upsert({
-            id: w.id,
-            full_name: w.fullName,
-            phone: w.phone,
-            city: w.city,
-            area: w.area,
-            gender: w.gender,
-            age: w.age,
-            languages: w.languages,
-            experience: w.experience,
-            skills: w.skills,
-            availability_type: w.availabilityType,
-            hours_min: w.hoursMin,
-            hours_max: w.hoursMax,
-            rate_min: w.rateMin,
-            rate_max: w.rateMax,
-            payment_methods: w.paymentMethods,
-            service_areas: w.serviceAreas,
-            contact_method: w.contactMethod,
-            bio: w.bio,
-            days: w.days,
-            rating: w.rating,
-            reviews: w.reviews,
-            created_at: new Date(w.createdAt).toISOString(),
-          }).then(() => {});
-        }
-      }
-
       const workerMap = new Map<string, WorkerProfile>();
       mappedWorkers.forEach((w: WorkerProfile) => workerMap.set(w.id, w));
       localWorkers.forEach((w: WorkerProfile) => {
@@ -1075,24 +1108,6 @@ if (isSupabaseConfigured) {
       }));
 
       const localSeekers = read<SeekerProfile[]>(K.seekers, []);
-      for (const s of localSeekers) {
-        if (!mappedSeekers.some((ss: SeekerProfile) => ss.id === s.id)) {
-          supabase.from("seeker_profiles").upsert({
-            id: s.id,
-            full_name: s.fullName,
-            phone: s.phone,
-            city: s.city,
-            area: s.area,
-            care_for: s.careFor,
-            persons: s.persons,
-            timing: s.timing,
-            days: s.days,
-            notes: s.notes,
-            created_at: new Date(s.createdAt).toISOString(),
-          }).then(() => {});
-        }
-      }
-
       const seekerMap = new Map<string, SeekerProfile>();
       mappedSeekers.forEach((s: SeekerProfile) => seekerMap.set(s.id, s));
       localSeekers.forEach((s: SeekerProfile) => {
@@ -1231,6 +1246,14 @@ if (isSupabaseConfigured) {
           "postgres_changes",
           { event: "*", schema: "public", table: "care_requests" },
           (payload: any) => {
+            if (payload.eventType === "DELETE") {
+              const deletedId = payload.old?.id;
+              if (deletedId) {
+                const all = getRequests().filter((r) => r.id !== deletedId);
+                write(K.requests, [...all]);
+              }
+              return;
+            }
             const rec = payload.new;
             if (rec && rec.id) {
               const all = getRequests();
@@ -1244,11 +1267,12 @@ if (isSupabaseConfigured) {
               const idx = all.findIndex(
                 (r) =>
                   r.id === mapped.id ||
-                  (r.workerId === mapped.workerId && r.seekerId === mapped.seekerId),
+                  (r.workerId === mapped.workerId && r.seekerId === mapped.seekerId) ||
+                  (r.workerId === mapped.seekerId && r.seekerId === mapped.workerId),
               );
               if (idx >= 0) all[idx] = mapped;
               else all.unshift(mapped);
-              write(K.requests, all);
+              write(K.requests, [...all]);
             }
           },
         )
@@ -1268,42 +1292,21 @@ if (isSupabaseConfigured) {
               };
               if (idx >= 0) threads[idx] = threadObj;
               else threads.push(threadObj);
-              write(K.threads, threads);
+              write(K.threads, [...threads]);
             }
           },
         )
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "messages" },
-          async (payload: any) => {
+          (payload: any) => {
             const rec = payload.new;
             if (!rec || !rec.id) return;
             const me = getMe();
             const all = read<Message[]>(K.messages, []);
 
-            let threads = getThreads();
-            let thread = threads.find((t) => t.id === rec.thread_id);
-            if (!thread && isSupabaseConfigured) {
-              try {
-                const { data: tData } = await supabase
-                  .from("message_threads")
-                  .select("id, pair_key, seeker_id, worker_id")
-                  .eq("id", rec.thread_id)
-                  .maybeSingle();
-                if (tData) {
-                  thread = {
-                    id: tData.id,
-                    pairKey: tData.pair_key,
-                    seekerId: tData.seeker_id,
-                    workerId: tData.worker_id,
-                  };
-                  threads = getThreads();
-                  threads.push(thread);
-                  write(K.threads, threads);
-                }
-              } catch {}
-            }
-
+            const threads = getThreads();
+            const thread = threads.find((t) => t.id === rec.thread_id);
             const resolvedThreadId = thread?.pairKey || rec.thread_id;
 
             const existingIdx = all.findIndex(
@@ -1328,7 +1331,32 @@ if (isSupabaseConfigured) {
             } else {
               all.push(mappedMsg);
             }
-            write(K.messages, all);
+            // Instant synchronous write: 0ms latency for receiving participant!
+            write(K.messages, [...all]);
+
+            // Async background metadata fetch if thread is missing from local threads
+            if (!thread && isSupabaseConfigured) {
+              supabase
+                .from("message_threads")
+                .select("id, pair_key, seeker_id, worker_id")
+                .eq("id", rec.thread_id)
+                .maybeSingle()
+                .then(({ data: tData }) => {
+                  if (tData) {
+                    const currentThreads = getThreads();
+                    if (!currentThreads.some((t) => t.id === tData.id)) {
+                      currentThreads.push({
+                        id: tData.id,
+                        pairKey: tData.pair_key,
+                        seekerId: tData.seeker_id,
+                        workerId: tData.worker_id,
+                      });
+                      write(K.threads, [...currentThreads]);
+                    }
+                  }
+                })
+                .catch(() => {});
+            }
           },
         )
         .subscribe();

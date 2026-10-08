@@ -11,12 +11,15 @@ import {
   fetchWorkerById,
   fetchSeekerById,
   makeThreadKey,
+  parseThreadKey,
+  getThreads,
+  isValidUuid,
   useStore,
   addRequest,
   getRequests,
 } from "@/lib/store";
 import { TextInput, PrimaryButton } from "@/components/form-bits";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, CheckCheck, User } from "lucide-react";
 
 export const Route = createFileRoute("/messages/$id")({
   head: () => ({ meta: [{ title: "Messages — CareConnect" }] }),
@@ -27,20 +30,34 @@ function MessageThread() {
   const { id } = useParams({ from: "/messages/$id" });
   const { t } = useI18n();
   const me = useStore(() => getMe());
-  const threadId = me ? makeThreadKey(me.id, id) : id;
+  const threads = useStore(() => getThreads());
+
+  // Determine other participant ID whether id is a thread UUID, pairKey, or user ID
+  const threadRecord = threads.find((t) => t.id === id || t.pairKey === id);
+  const otherParticipantId = threadRecord
+    ? me?.id === threadRecord.seekerId
+      ? threadRecord.workerId
+      : threadRecord.seekerId
+    : id.startsWith("thread:")
+      ? parseThreadKey(id).find((x) => x !== me?.id) || id
+      : id;
+
+  const threadId = me ? makeThreadKey(me.id, otherParticipantId) : id;
   const msgs = useStore(() => getMessages(threadId));
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
-  const other = useStore(() => getWorker(id) ?? getSeeker(id));
+  const otherWorker = useStore(() => getWorker(otherParticipantId));
+  const otherSeeker = useStore(() => getSeeker(otherParticipantId));
+  const other = otherWorker ?? otherSeeker;
 
   useEffect(() => {
-    if (!other && id) {
-      void fetchWorkerById(id).then((w) => {
-        if (!w) void fetchSeekerById(id);
+    if (!other && otherParticipantId && isValidUuid(otherParticipantId)) {
+      void fetchWorkerById(otherParticipantId).then((w) => {
+        if (!w) void fetchSeekerById(otherParticipantId);
       });
     }
-  }, [id, other]);
+  }, [otherParticipantId, other]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -54,32 +71,38 @@ function MessageThread() {
     setText("");
     void addMessage(threadId, true, v);
 
-    if (me.role === "seeker") {
-      const allReqs = getRequests();
-      const existingReq = allReqs.find(
-        (r) =>
-          (r.workerId === id || r.workerId === other?.phone) &&
-          (r.seekerId === me.id || r.seekerId === me.profileId),
-      );
-      if (!existingReq) {
-        void addRequest({ workerId: id, seekerId: me.id, initiatorId: me.id });
-      }
-    } else if (me.role === "worker") {
-      const allReqs = getRequests();
-      const workerProfileId = me.profileId || me.id;
-      const existingReq = allReqs.find(
-        (r) =>
-          (r.workerId === workerProfileId || r.workerId === me.id) &&
-          (r.seekerId === id || r.seekerId === other?.phone),
-      );
-      if (!existingReq) {
-        void addRequest({ workerId: workerProfileId, seekerId: id, initiatorId: me.id });
-      }
+    // Ensure care_request exists in the background without overwriting existing status
+    const allReqs = getRequests();
+    const isSeeker = me.role === "seeker";
+    const workerProfileId = isSeeker ? otherParticipantId : me.profileId || me.id;
+    const seekerProfileId = isSeeker ? me.profileId || me.id : otherParticipantId;
+
+    const existingReq = allReqs.find(
+      (r) =>
+        (r.workerId === workerProfileId && r.seekerId === seekerProfileId) ||
+        (r.workerId === seekerProfileId && r.seekerId === workerProfileId),
+    );
+
+    if (!existingReq && isValidUuid(workerProfileId) && isValidUuid(seekerProfileId)) {
+      void addRequest({
+        workerId: workerProfileId,
+        seekerId: seekerProfileId,
+        initiatorId: me.id,
+      });
     }
   };
 
   const mine = (message: (typeof msgs)[number]) =>
     message.fromMe || (me ? message.senderId === me.id : false);
+
+  const otherInitials = other?.fullName
+    ? other.fullName
+        .split(" ")
+        .map((s) => s[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "C";
 
   return (
     <div className="min-h-screen bg-background" suppressHydrationWarning>
@@ -92,27 +115,80 @@ function MessageThread() {
           <ArrowLeft className="h-4 w-4" /> {t("onb.back")}
         </Link>
 
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
-          <h2 className="font-bold text-foreground">{other?.fullName ?? "Conversation"}</h2>
+        {/* Conversation Header */}
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-base font-bold text-primary-foreground shadow-warm">
+              {otherInitials}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="truncate font-bold text-foreground">
+                  {other?.fullName ?? "Conversation"}
+                </h2>
+                {other && (
+                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    {otherWorker ? "Caregiver" : "Care Recipient"}
+                  </span>
+                )}
+              </div>
+              {other && (
+                <p className="truncate text-xs text-muted-foreground">
+                  {other.area}, {other.city}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 shrink-0">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Real-Time</span>
+          </div>
         </div>
 
-        <div className="flex min-h-[50vh] flex-col gap-2 rounded-2xl border border-border bg-card p-4 shadow-soft">
+        {/* Messages Stream */}
+        <div className="flex min-h-[50vh] flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-soft overflow-y-auto">
           {msgs.length === 0 && (
-            <p className="m-auto max-w-xs text-center text-sm text-muted-foreground">
-              {t("msg.empty")}
-            </p>
-          )}
-          {msgs.map((m) => (
-            <div key={m.id} className={`flex ${mine(m) ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                  mine(m) ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
-                }`}
-              >
-                {m.content}
-              </div>
+            <div className="m-auto flex flex-col items-center gap-2 text-center text-muted-foreground py-8">
+              <User className="h-10 w-10 text-primary/30" />
+              <p className="max-w-xs text-sm">
+                No messages yet. Say hello to start coordinating care!
+              </p>
             </div>
-          ))}
+          )}
+          {msgs.map((m) => {
+            const isMine = mine(m);
+            const timeStr = m.createdAt
+              ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : "";
+
+            return (
+              <div
+                key={m.id}
+                className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+              >
+                <span className="mb-0.5 px-1 text-[11px] font-medium text-muted-foreground">
+                  {isMine ? "You" : other?.fullName || "Caregiver"}
+                </span>
+                <div
+                  className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-soft ${
+                    isMine
+                      ? "bg-primary text-primary-foreground rounded-br-xs"
+                      : "bg-muted text-foreground rounded-bl-xs"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                  <div
+                    className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
+                      isMine ? "text-primary-foreground/75" : "text-muted-foreground"
+                    }`}
+                  >
+                    <span>{timeStr}</span>
+                    {isMine && <CheckCheck className="h-3 w-3" />}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
           <div ref={endRef} />
         </div>
 
@@ -146,6 +222,7 @@ function MessageThread() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={t("msg.placeholder")}
+              className="flex-1"
             />
             <PrimaryButton type="submit" aria-label={t("msg.send")} className="shrink-0">
               <Send className="h-4 w-4" />

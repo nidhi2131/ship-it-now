@@ -74,20 +74,14 @@ function SeekerProfilePage() {
     : null;
   const offerSent = Boolean(existingReq) || isSendingOffer;
 
-  const sendOffer = async () => {
+  const sendOffer = () => {
     if (!me) return;
     setIsSendingOffer(true);
-    try {
-      await addRequest({
-        workerId: workerProfileId,
-        seekerId: seeker.id,
-        initiatorId: me.id,
-      });
-    } catch (err) {
-      console.warn(err);
-    } finally {
-      setIsSendingOffer(false);
-    }
+    void addRequest({
+      workerId: workerProfileId,
+      seekerId: seeker.id,
+      initiatorId: me.id,
+    });
   };
 
   return (

@@ -38,10 +38,16 @@ function SeekerDash() {
   }
 
   const myRequests = requests.filter(
-    (r) => r.seekerId === me.id || (me.profileId && r.seekerId === me.profileId),
+    (r) =>
+      r.seekerId === me.id ||
+      (me.profileId && r.seekerId === me.profileId),
   );
-  const incomingOffers = myRequests.filter((r) => r.initiatorId !== me.id);
-  const outgoingRequests = myRequests.filter((r) => r.initiatorId === me.id);
+  const incomingOffers = myRequests.filter((r) =>
+    r.initiatorId ? r.initiatorId !== me.id : false,
+  );
+  const outgoingRequests = myRequests.filter((r) =>
+    r.initiatorId ? r.initiatorId === me.id : true,
+  );
 
   return (
     <div className="min-h-screen bg-background" suppressHydrationWarning>
@@ -121,14 +127,14 @@ function SeekerDash() {
                             {!isAccepted ? (
                               <button
                                 type="button"
-                                onClick={async () => {
-                                  await updateRequestStatus(
+                                onClick={() => {
+                                  void updateRequestStatus(
                                     r.workerId,
                                     r.seekerId,
                                     "responded",
                                   );
                                 }}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-110"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-110 active:scale-95 transition-all"
                               >
                                 <Check className="h-4 w-4" /> Accept Offer
                               </button>
