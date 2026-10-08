@@ -182,7 +182,16 @@ function write<T>(key: string, val: T) {
   notifyStoreListeners();
 }
 
-export const uid = () => Math.random().toString(36).slice(2, 10);
+export const uid = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 export const isValidUuid = (id?: string | null): boolean =>
   Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id));
@@ -416,31 +425,36 @@ export const upsertSeeker = async (s: SeekerProfile) => {
 
   if (isSupabaseConfigured) {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.user && isValidUuid(s.id)) {
-        await supabase.from("seeker_profiles").upsert({
-          id: s.id,
-          full_name: s.fullName,
-          phone: s.phone,
-          city: s.city,
-          area: s.area,
-          care_for: s.careFor,
-          persons: s.persons,
-          timing: s.timing,
-          days: s.days,
-          notes: s.notes,
-          created_at: new Date(s.createdAt).toISOString(),
-        });
+      const { error } = await supabase.from("seeker_profiles").upsert({
+        id: s.id,
+        full_name: s.fullName,
+        phone: s.phone,
+        city: s.city,
+        area: s.area,
+        care_for: s.careFor,
+        persons: s.persons,
+        timing: s.timing,
+        days: s.days,
+        notes: s.notes,
+        created_at: new Date(s.createdAt).toISOString(),
+      });
+      if (error) console.warn("Supabase upsertSeeker notice:", error.message);
 
-        if (me && isValidUuid(me.id)) {
-          await supabase
-            .from("profiles")
-            .update({ profile_id: s.id, role: "seeker" })
-            .eq("id", me.id);
-        }
+      if (me) {
+        await supabase
+          .from("profiles")
+          .upsert({
+            id: me.id,
+            profile_id: s.id,
+            role: "seeker",
+            full_name: me.fullName,
+            phone: me.phone,
+            city: me.city,
+            area: me.area,
+          });
       }
-    } catch {
-      // Supabase sync failure will fall back to local storage seamlessly
+    } catch (err) {
+      console.warn("Supabase upsertSeeker error:", err);
     }
   }
 };
@@ -468,43 +482,48 @@ export const upsertWorker = async (w: WorkerProfile) => {
 
   if (isSupabaseConfigured) {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.user && isValidUuid(w.id)) {
-        await supabase.from("worker_profiles").upsert({
-          id: w.id,
-          full_name: w.fullName,
-          phone: w.phone,
-          city: w.city,
-          area: w.area,
-          gender: w.gender,
-          age: w.age,
-          languages: w.languages,
-          experience: w.experience,
-          skills: w.skills,
-          availability_type: w.availabilityType,
-          hours_min: w.hoursMin,
-          hours_max: w.hoursMax,
-          rate_min: w.rateMin,
-          rate_max: w.rateMax,
-          payment_methods: w.paymentMethods,
-          service_areas: w.serviceAreas,
-          contact_method: w.contactMethod,
-          bio: w.bio,
-          days: w.days,
-          rating: w.rating,
-          reviews: w.reviews,
-          created_at: new Date(w.createdAt).toISOString(),
-        });
+      const { error } = await supabase.from("worker_profiles").upsert({
+        id: w.id,
+        full_name: w.fullName,
+        phone: w.phone,
+        city: w.city,
+        area: w.area,
+        gender: w.gender,
+        age: w.age,
+        languages: w.languages,
+        experience: w.experience,
+        skills: w.skills,
+        availability_type: w.availabilityType,
+        hours_min: w.hoursMin,
+        hours_max: w.hoursMax,
+        rate_min: w.rateMin,
+        rate_max: w.rateMax,
+        payment_methods: w.paymentMethods,
+        service_areas: w.serviceAreas,
+        contact_method: w.contactMethod,
+        bio: w.bio,
+        days: w.days,
+        rating: w.rating,
+        reviews: w.reviews,
+        created_at: new Date(w.createdAt).toISOString(),
+      });
+      if (error) console.warn("Supabase upsertWorker notice:", error.message);
 
-        if (me && isValidUuid(me.id)) {
-          await supabase
-            .from("profiles")
-            .update({ profile_id: w.id, role: "worker" })
-            .eq("id", me.id);
-        }
+      if (me) {
+        await supabase
+          .from("profiles")
+          .upsert({
+            id: me.id,
+            profile_id: w.id,
+            role: "worker",
+            full_name: me.fullName,
+            phone: me.phone,
+            city: me.city,
+            area: me.area,
+          });
       }
-    } catch {
-      // Supabase sync failure will fall back to local storage seamlessly
+    } catch (err) {
+      console.warn("Supabase upsertWorker error:", err);
     }
   }
 };
@@ -907,6 +926,88 @@ if (isSupabaseConfigured) {
         .channel("careconnect_live_sync")
         .on(
           "postgres_changes",
+          { event: "*", schema: "public", table: "worker_profiles" },
+          (payload: any) => {
+            if (payload.eventType === "DELETE") {
+              const deletedId = payload.old?.id;
+              if (deletedId) {
+                const all = getWorkers().filter((w) => w.id !== deletedId);
+                write(K.workers, all);
+              }
+              return;
+            }
+            const rec = payload.new;
+            if (rec && rec.id) {
+              const all = getWorkers();
+              const mapped: WorkerProfile = {
+                id: rec.id,
+                fullName: rec.full_name,
+                phone: rec.phone,
+                city: rec.city,
+                area: rec.area,
+                gender: rec.gender,
+                age: rec.age,
+                languages: rec.languages || [],
+                experience: rec.experience,
+                skills: rec.skills || [],
+                availabilityType: rec.availability_type || [],
+                hoursMin: rec.hours_min,
+                hoursMax: rec.hours_max,
+                rateMin: rec.rate_min,
+                rateMax: rec.rate_max,
+                paymentMethods: rec.payment_methods || [],
+                serviceAreas: rec.service_areas || [],
+                contactMethod: rec.contact_method,
+                bio: rec.bio || "",
+                days: rec.days || [],
+                rating: Number(rec.rating || 0),
+                reviews: rec.reviews || [],
+                createdAt: rec.created_at ? new Date(rec.created_at).getTime() : Date.now(),
+              };
+              const idx = all.findIndex((w) => w.id === mapped.id);
+              if (idx >= 0) all[idx] = mapped;
+              else all.unshift(mapped);
+              write(K.workers, all);
+            }
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "seeker_profiles" },
+          (payload: any) => {
+            if (payload.eventType === "DELETE") {
+              const deletedId = payload.old?.id;
+              if (deletedId) {
+                const all = getSeekers().filter((s) => s.id !== deletedId);
+                write(K.seekers, all);
+              }
+              return;
+            }
+            const rec = payload.new;
+            if (rec && rec.id) {
+              const all = getSeekers();
+              const mapped: SeekerProfile = {
+                id: rec.id,
+                fullName: rec.full_name,
+                phone: rec.phone,
+                city: rec.city,
+                area: rec.area,
+                careFor: rec.care_for,
+                persons: rec.persons || [],
+                timing: rec.timing || [],
+                days: rec.days || [],
+                notes: rec.notes || "",
+                createdAt: rec.created_at ? new Date(rec.created_at).getTime() : Date.now(),
+              };
+              const idx = all.findIndex((s) => s.id === mapped.id);
+              if (idx >= 0) all[idx] = mapped;
+              else all.unshift(mapped);
+              write(K.seekers, all);
+            }
+          },
+        )
+        .on(
+          "postgres_changes",
           { event: "*", schema: "public", table: "care_requests" },
           (payload: any) => {
             const rec = payload.new;
@@ -1069,7 +1170,7 @@ export const clearDatabase = () => {
 };
 
 // Automatic one-time cleanup to clear any existing mock data from browser localStorage
-const STORE_RESET_KEY = "cc.db_cleaned_v1";
+const STORE_RESET_KEY = "cc.db_cleaned_v4";
 if (typeof window !== "undefined") {
   try {
     if (!localStorage.getItem(STORE_RESET_KEY)) {

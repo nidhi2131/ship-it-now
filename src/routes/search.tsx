@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useRouter, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
@@ -51,6 +51,7 @@ function SearchPage() {
           ? "seekers"
           : "workers";
 
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"workers" | "seekers">(initialTab);
 
   useEffect(() => {
@@ -60,6 +61,15 @@ function SearchPage() {
       setActiveTab("workers");
     }
   }, [tab]);
+
+  const handleTabChange = (target: "workers" | "seekers") => {
+    setActiveTab(target);
+    navigate({
+      to: "/search",
+      search: { tab: target === "workers" ? "caregivers" : "requests" },
+      replace: true,
+    });
+  };
 
   // Worker filters
   const [skills, setSkills] = useState<string[]>([]);
@@ -277,7 +287,7 @@ function SearchPage() {
           <div className="flex w-full max-w-md rounded-2xl border border-border bg-card/80 p-1.5 shadow-soft">
             <button
               type="button"
-              onClick={() => setActiveTab("workers")}
+              onClick={() => handleTabChange("workers")}
               className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all ${
                 activeTab === "workers"
                   ? "bg-primary text-primary-foreground shadow-sm"
@@ -289,7 +299,7 @@ function SearchPage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("seekers")}
+              onClick={() => handleTabChange("seekers")}
               className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all ${
                 activeTab === "seekers"
                   ? "bg-secondary text-secondary-foreground shadow-sm"
