@@ -1,10 +1,10 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
-import { getSeeker, getMe, useStore, addRequest, getRequests } from "@/lib/store";
-import { MapPin, Phone, Lock, Check } from "lucide-react";
+import { getSeeker, fetchSeekerById, getMe, useStore, addRequest, getRequests } from "@/lib/store";
+import { MapPin, Phone, Lock, Check, Loader2 } from "lucide-react";
 import { PrimaryButton } from "@/components/form-bits";
-import { useState } from "react";
 
 export const Route = createFileRoute("/profile/seeker/$id")({
   head: () => ({ meta: [{ title: "Care request — CareConnect" }] }),
@@ -23,8 +23,46 @@ function SeekerProfilePage() {
   const me = useStore(() => getMe());
   const requests = useStore(() => getRequests());
   const [isSendingOffer, setIsSendingOffer] = useState(false);
+  const [loading, setLoading] = useState(!seeker);
 
-  if (!seeker) return <div className="p-8 text-center text-muted-foreground">Not found</div>;
+  useEffect(() => {
+    if (!seeker && id) {
+      setLoading(true);
+      void fetchSeekerById(id).finally(() => setLoading(false));
+    } else if (seeker) {
+      setLoading(false);
+    }
+  }, [id, seeker]);
+
+  if (!seeker) {
+    return (
+      <div className="min-h-screen bg-background" suppressHydrationWarning>
+        <SiteHeader />
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm font-medium text-muted-foreground">Loading care request...</p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-border bg-card p-8 shadow-soft">
+              <h2 className="text-xl font-bold text-foreground">Care request not found</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                This care request might have been fulfilled or does not exist.
+              </p>
+              <Link
+                to="/search"
+                search={{ tab: "requests" }}
+                className="inline-link mt-4 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:brightness-110"
+              >
+                Browse care requests
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const workerProfileId = me?.profileId || me?.id || "";
   const existingReq = me

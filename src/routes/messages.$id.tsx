@@ -8,6 +8,8 @@ import {
   getMe,
   getWorker,
   getSeeker,
+  fetchWorkerById,
+  fetchSeekerById,
   makeThreadKey,
   useStore,
   addRequest,
@@ -33,13 +35,24 @@ function MessageThread() {
   const other = useStore(() => getWorker(id) ?? getSeeker(id));
 
   useEffect(() => {
+    if (!other && id) {
+      void fetchWorkerById(id).then((w) => {
+        if (!w) void fetchSeekerById(id);
+      });
+    }
+  }, [id, other]);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs.length]);
 
-  const send = async (e: React.FormEvent) => {
+  const send = (e: React.FormEvent) => {
     e.preventDefault();
     const v = text.trim();
     if (!v || !me) return;
+
+    setText("");
+    void addMessage(threadId, true, v);
 
     if (me.role === "seeker") {
       const allReqs = getRequests();
@@ -49,11 +62,7 @@ function MessageThread() {
           (r.seekerId === me.id || r.seekerId === me.profileId),
       );
       if (!existingReq) {
-        try {
-          await addRequest({ workerId: id, seekerId: me.id, initiatorId: me.id });
-        } catch (err) {
-          console.warn("Could not auto-create care request:", err);
-        }
+        void addRequest({ workerId: id, seekerId: me.id, initiatorId: me.id });
       }
     } else if (me.role === "worker") {
       const allReqs = getRequests();
@@ -64,16 +73,9 @@ function MessageThread() {
           (r.seekerId === id || r.seekerId === other?.phone),
       );
       if (!existingReq) {
-        try {
-          await addRequest({ workerId: workerProfileId, seekerId: id, initiatorId: me.id });
-        } catch (err) {
-          console.warn("Could not auto-create care request:", err);
-        }
+        void addRequest({ workerId: workerProfileId, seekerId: id, initiatorId: me.id });
       }
     }
-
-    void addMessage(threadId, true, v);
-    setText("");
   };
 
   const mine = (message: (typeof msgs)[number]) =>

@@ -81,6 +81,13 @@ export type Message = {
   createdAt: number;
 };
 
+export type Thread = {
+  id: string;
+  pairKey: string;
+  seekerId: string;
+  workerId: string;
+};
+
 export const makeThreadKey = (firstId: string, secondId: string) =>
   `thread:${[firstId, secondId].sort().join("::")}`;
 
@@ -100,6 +107,7 @@ const K = {
   seekers: "cc.seekers",
   workers: "cc.workers",
   requests: "cc.requests",
+  threads: "cc.threads",
   messages: "cc.messages",
 };
 
@@ -528,46 +536,112 @@ export const upsertWorker = async (w: WorkerProfile) => {
   }
 };
 
-export const getWorker = (id: string) => getWorkers().find((w) => w.id === id);
-export const getSeeker = (id: string) => getSeekers().find((s) => s.id === id);
+export const getWorker = (id: string) => {
+  const all = getWorkers();
+  return all.find((w) => w.id === id || w.phone === id);
+};
+
+export const fetchWorkerById = async (id: string): Promise<WorkerProfile | null> => {
+  const existing = getWorker(id);
+  if (existing) return existing;
+  if (!isSupabaseConfigured || !isValidUuid(id)) return null;
+  try {
+    const { data: w } = await supabase
+      .from("worker_profiles")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (w) {
+      const mapped: WorkerProfile = {
+        id: w.id,
+        fullName: w.full_name,
+        phone: w.phone,
+        city: w.city,
+        area: w.area,
+        gender: w.gender,
+        age: w.age,
+        languages: w.languages || [],
+        experience: w.experience,
+        skills: w.skills || [],
+        availabilityType: w.availability_type || [],
+        hoursMin: w.hours_min,
+        hoursMax: w.hours_max,
+        rateMin: w.rate_min,
+        rateMax: w.rate_max,
+        paymentMethods: w.payment_methods || [],
+        serviceAreas: w.service_areas || [],
+        contactMethod: w.contact_method,
+        bio: w.bio || "",
+        days: w.days || [],
+        rating: Number(w.rating || 0),
+        reviews: w.reviews || [],
+        createdAt: new Date(w.created_at).getTime(),
+      };
+      const all = getWorkers();
+      const idx = all.findIndex((x) => x.id === mapped.id);
+      if (idx >= 0) all[idx] = mapped;
+      else all.push(mapped);
+      write(K.workers, all);
+      return mapped;
+    }
+  } catch {}
+  return null;
+};
+
+export const getSeeker = (id: string) => {
+  const all = getSeekers();
+  return all.find((s) => s.id === id || s.phone === id);
+};
+
+export const fetchSeekerById = async (id: string): Promise<SeekerProfile | null> => {
+  const existing = getSeeker(id);
+  if (existing) return existing;
+  if (!isSupabaseConfigured || !isValidUuid(id)) return null;
+  try {
+    const { data: s } = await supabase
+      .from("seeker_profiles")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (s) {
+      const mapped: SeekerProfile = {
+        id: s.id,
+        fullName: s.full_name,
+        phone: s.phone,
+        city: s.city,
+        area: s.area,
+        careFor: s.care_for,
+        persons: s.persons || [],
+        timing: s.timing || [],
+        days: s.days || [],
+        notes: s.notes || "",
+        createdAt: new Date(s.created_at).getTime(),
+      };
+      const all = getSeekers();
+      const idx = all.findIndex((x) => x.id === mapped.id);
+      if (idx >= 0) all[idx] = mapped;
+      else all.push(mapped);
+      write(K.seekers, all);
+      return mapped;
+    }
+  } catch {}
+  return null;
+};
+
+export const getThreads = (): Thread[] => {
+  if (isEvaluatingServerSnapshot) return [];
+  return read<Thread[]>(K.threads, []);
+};
 
 // --- Requests ---
 export const getRequests = () => read<Request[]>(K.requests, []);
 export const addRequest = async (
   r: Omit<Request, "id" | "createdAt" | "status"> & { initiatorId?: string },
 ) => {
-  let createdReq: Request | null = null;
-  if (isSupabaseConfigured && isValidUuid(r.workerId) && isValidUuid(r.seekerId)) {
-    try {
-      const { data, error } = await supabase
-        .from("care_requests")
-        .upsert(
-          {
-            worker_id: r.workerId,
-            seeker_id: r.seekerId,
-            status: "pending",
-          },
-          { onConflict: "worker_id,seeker_id" },
-        )
-        .select("id, worker_id, seeker_id, status, created_at");
-
-      if (!error && data?.[0]) {
-        createdReq = {
-          id: data[0].id,
-          workerId: r.workerId,
-          seekerId: r.seekerId,
-          initiatorId: r.initiatorId,
-          status: (data[0].status as Request["status"]) ?? "pending",
-          createdAt: data[0].created_at ? new Date(data[0].created_at).getTime() : Date.now(),
-        };
-      }
-    } catch (err) {
-      console.warn("Supabase addRequest notice, using local store:", err);
-    }
-  }
-
   const all = getRequests();
-  const req: Request = createdReq ?? {
+  const req: Request = {
     ...r,
     id: uid(),
     status: "pending",
@@ -580,6 +654,42 @@ export const addRequest = async (
   if (idx >= 0) all[idx] = req;
   else all.unshift(req);
   write(K.requests, all);
+
+  // Background sync to Supabase
+  if (isSupabaseConfigured && isValidUuid(r.workerId) && isValidUuid(r.seekerId)) {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("care_requests")
+          .upsert(
+            {
+              worker_id: r.workerId,
+              seeker_id: r.seekerId,
+              status: "pending",
+            },
+            { onConflict: "worker_id,seeker_id" },
+          )
+          .select("id, worker_id, seeker_id, status, created_at");
+
+        if (!error && data?.[0]) {
+          const current = getRequests();
+          const target = current.find(
+            (item) => item.workerId === r.workerId && item.seekerId === r.seekerId,
+          );
+          if (target) {
+            target.id = data[0].id;
+            target.createdAt = data[0].created_at
+              ? new Date(data[0].created_at).getTime()
+              : target.createdAt;
+            write(K.requests, current);
+          }
+        }
+      } catch (err) {
+        console.warn("Supabase addRequest notice:", err);
+      }
+    })();
+  }
+
   return req;
 };
 
@@ -588,6 +698,17 @@ export const updateRequestStatus = async (
   seekerId: string,
   newStatus: Request["status"],
 ) => {
+  const all = getRequests();
+  const req = all.find(
+    (item) =>
+      (item.workerId === workerId && item.seekerId === seekerId) ||
+      (item.workerId === seekerId && item.seekerId === workerId),
+  );
+  if (req) {
+    req.status = newStatus;
+    write(K.requests, all);
+  }
+
   if (isSupabaseConfigured && isValidUuid(workerId) && isValidUuid(seekerId)) {
     try {
       await supabase
@@ -598,17 +719,6 @@ export const updateRequestStatus = async (
     } catch (err) {
       console.warn("Supabase updateRequestStatus notice:", err);
     }
-  }
-
-  const all = getRequests();
-  const req = all.find(
-    (item) =>
-      (item.workerId === workerId && item.seekerId === seekerId) ||
-      (item.workerId === seekerId && item.seekerId === workerId),
-  );
-  if (req) {
-    req.status = newStatus;
-    write(K.requests, all);
   }
 };
 
@@ -626,67 +736,115 @@ export const hasAcceptedRequest = (workerId: string, seekerId: string) => {
 // --- Messages ---
 export const getMessages = (threadId: string): Message[] => {
   if (isEvaluatingServerSnapshot) return [];
-  if (messageThreadCache[threadId]) return messageThreadCache[threadId];
+  const me = getMe();
+  const allThreads = getThreads();
+
+  const matchingKeys = new Set<string>();
+  matchingKeys.add(threadId);
+
+  // If threadId is "thread:A::B" or a Supabase thread UUID
+  const matchedThread = allThreads.find(
+    (t) => t.pairKey === threadId || t.id === threadId,
+  );
+  if (matchedThread) {
+    matchingKeys.add(matchedThread.pairKey);
+    matchingKeys.add(matchedThread.id);
+  }
+
+  // If threadId is other person's profile id or phone
+  if (me) {
+    const pairKey = makeThreadKey(me.id, threadId);
+    matchingKeys.add(pairKey);
+    const byPair = allThreads.find((t) => t.pairKey === pairKey);
+    if (byPair) {
+      matchingKeys.add(byPair.id);
+      matchingKeys.add(byPair.pairKey);
+    }
+  }
+
   const all = read<Message[]>(K.messages, []);
-  const filtered = all.filter((m) => m.threadId === threadId);
-  messageThreadCache[threadId] = filtered;
-  return filtered;
+  return all.filter((m) => matchingKeys.has(m.threadId));
 };
+
 export const addMessage = async (threadId: string, fromMe: boolean, content: string) => {
   const me = getMe();
-  let messageId = uid();
-  let createdAt = Date.now();
+  const messageId = uid();
+  const createdAt = Date.now();
 
   const [firstId, secondId] = parseThreadKey(threadId);
   const otherId = me ? (me.id === firstId ? secondId : firstId) : secondId;
   const seekerId = me?.role === "seeker" ? me.id : otherId;
   const workerId = me?.role === "worker" ? me.id : otherId;
 
-  if (isSupabaseConfigured && me && isValidUuid(me.id) && isValidUuid(seekerId) && isValidUuid(workerId)) {
-    try {
-      const { data: thread } = await supabase
-        .from("message_threads")
-        .upsert(
-          {
-            pair_key: threadId,
-            seeker_id: seekerId,
-            worker_id: workerId,
-          },
-          { onConflict: "pair_key" },
-        )
-        .select("id, pair_key")
-        .single();
-
-      if (thread?.id) {
-        const { data } = await supabase
-          .from("messages")
-          .insert({
-            thread_id: thread.id,
-            sender_id: me.id,
-            content,
-          })
-          .select("id, thread_id, content, created_at");
-
-        if (data?.[0]) {
-          messageId = data[0].id;
-          createdAt = new Date(data[0].created_at).getTime();
-        }
-      }
-    } catch (err) {
-      console.warn("Supabase addMessage fallback to local:", err);
-    }
-  }
-
+  // 1. Instant Optimistic local push (0ms latency)
   const all = read<Message[]>(K.messages, []);
   all.push({
     id: messageId,
     threadId,
-    fromMe,
+    fromMe: true,
     senderId: me?.id,
     content,
     createdAt,
   });
   write(K.messages, all);
+
+  // 2. Background sync to Supabase
+  if (isSupabaseConfigured && me && isValidUuid(me.id) && isValidUuid(seekerId) && isValidUuid(workerId)) {
+    (async () => {
+      try {
+        const { data: thread } = await supabase
+          .from("message_threads")
+          .upsert(
+            {
+              pair_key: threadId,
+              seeker_id: seekerId,
+              worker_id: workerId,
+            },
+            { onConflict: "pair_key" },
+          )
+          .select("id, pair_key")
+          .single();
+
+        if (thread?.id) {
+          const threads = getThreads();
+          const tIdx = threads.findIndex((t) => t.id === thread.id || t.pairKey === thread.pair_key);
+          const tObj: Thread = {
+            id: thread.id,
+            pairKey: thread.pair_key,
+            seekerId,
+            workerId,
+          };
+          if (tIdx >= 0) threads[tIdx] = tObj;
+          else threads.push(tObj);
+          write(K.threads, threads);
+
+          const { data } = await supabase
+            .from("messages")
+            .insert({
+              thread_id: thread.id,
+              sender_id: me.id,
+              content,
+            })
+            .select("id, thread_id, content, created_at");
+
+          if (data?.[0]) {
+            const currentMsgs = read<Message[]>(K.messages, []);
+            const mIdx = currentMsgs.findIndex((m) => m.id === messageId);
+            if (mIdx >= 0) {
+              currentMsgs[mIdx] = {
+                ...currentMsgs[mIdx],
+                id: data[0].id,
+                createdAt: new Date(data[0].created_at).getTime(),
+              };
+              write(K.messages, currentMsgs);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Supabase addMessage sync notice:", err);
+      }
+    })();
+  }
 };
 
 // --- Reviews ---
@@ -775,39 +933,94 @@ if (isSupabaseConfigured) {
     }
   });
 
-  // Asynchronously fetch initial data from Supabase and populate the cache
+  // Asynchronously fetch initial data from Supabase in parallel (<1.5s) and populate the cache
   const fetchDb = async () => {
+    if (typeof window === "undefined") return;
     try {
-      const { data: workers } = await supabase
-        .from("worker_profiles")
-        .select("*")
-      const mappedWorkers = (workers ?? []).map((w: any) => ({
-        id: w.id,
-        fullName: w.full_name,
-        phone: w.phone,
-        city: w.city,
-        area: w.area,
-        gender: w.gender,
-        age: w.age,
-        languages: w.languages,
-        experience: w.experience,
-        skills: w.skills,
-        availabilityType: w.availability_type,
-        hoursMin: w.hours_min,
-        hoursMax: w.hours_max,
-        rateMin: w.rate_min,
-        rateMax: w.rate_max,
-        paymentMethods: w.payment_methods,
-        serviceAreas: w.service_areas,
-        contactMethod: w.contact_method,
-        bio: w.bio,
-        days: w.days,
-        rating: Number(w.rating || 0),
-        reviews: w.reviews || [],
-        createdAt: new Date(w.created_at).getTime(),
-      }));
+      const [
+        workersRes,
+        seekersRes,
+        requestsRes,
+        threadsRes,
+        messagesRes,
+        reviewsRes,
+      ] = await Promise.all([
+        supabase.from("worker_profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("seeker_profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("care_requests").select("id, worker_id, seeker_id, status, created_at").order("created_at", { ascending: false }),
+        supabase.from("message_threads").select("id, pair_key, seeker_id, worker_id").order("created_at", { ascending: false }),
+        supabase.from("messages").select("id, thread_id, sender_id, content, created_at").order("created_at", { ascending: true }),
+        supabase.from("reviews").select("id, worker_id, seeker_id, rating, comment, seeker_name, created_at").order("created_at", { ascending: true }),
+      ]);
 
-      // Auto-sync any local worker not yet in Supabase
+      // 1. Threads
+      const threadKeyById = new Map<string, string>();
+      const mappedThreads: Thread[] = (threadsRes.data ?? []).map((t: any) => {
+        threadKeyById.set(t.id, t.pair_key);
+        return {
+          id: t.id,
+          pairKey: t.pair_key,
+          seekerId: t.seeker_id,
+          workerId: t.worker_id,
+        };
+      });
+      const localThreads = read<Thread[]>(K.threads, []);
+      const threadMap = new Map<string, Thread>();
+      mappedThreads.forEach((t) => threadMap.set(t.id, t));
+      localThreads.forEach((t) => {
+        if (!threadMap.has(t.id)) threadMap.set(t.id, t);
+      });
+      write(K.threads, Array.from(threadMap.values()));
+
+      // 2. Reviews
+      const reviewByWorker = new Map<string, WorkerProfile["reviews"]>();
+      if (reviewsRes.data && reviewsRes.data.length > 0) {
+        for (const review of reviewsRes.data as any[]) {
+          const list = reviewByWorker.get(review.worker_id) ?? [];
+          list.push({
+            id: review.id,
+            rating: review.rating,
+            comment: review.comment,
+            seekerName: review.seeker_name,
+            createdAt: new Date(review.created_at).getTime(),
+          });
+          reviewByWorker.set(review.worker_id, list);
+        }
+      }
+
+      // 3. Workers
+      const mappedWorkers: WorkerProfile[] = (workersRes.data ?? []).map((w: any) => {
+        const workerReviews = reviewByWorker.get(w.id) ?? w.reviews ?? [];
+        const rating = workerReviews.length
+          ? workerReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / workerReviews.length
+          : Number(w.rating || 0);
+        return {
+          id: w.id,
+          fullName: w.full_name,
+          phone: w.phone,
+          city: w.city,
+          area: w.area,
+          gender: w.gender,
+          age: w.age,
+          languages: w.languages || [],
+          experience: w.experience,
+          skills: w.skills || [],
+          availabilityType: w.availability_type || [],
+          hoursMin: w.hours_min,
+          hoursMax: w.hours_max,
+          rateMin: w.rate_min,
+          rateMax: w.rate_max,
+          paymentMethods: w.payment_methods || [],
+          serviceAreas: w.service_areas || [],
+          contactMethod: w.contact_method,
+          bio: w.bio || "",
+          days: w.days || [],
+          rating,
+          reviews: workerReviews,
+          createdAt: new Date(w.created_at).getTime(),
+        };
+      });
+
       const localWorkers = read<WorkerProfile[]>(K.workers, []);
       for (const w of localWorkers) {
         if (!mappedWorkers.some((sw: WorkerProfile) => sw.id === w.id)) {
@@ -839,7 +1052,6 @@ if (isSupabaseConfigured) {
         }
       }
 
-      // Merge local and server workers
       const workerMap = new Map<string, WorkerProfile>();
       mappedWorkers.forEach((w: WorkerProfile) => workerMap.set(w.id, w));
       localWorkers.forEach((w: WorkerProfile) => {
@@ -847,26 +1059,21 @@ if (isSupabaseConfigured) {
       });
       write(K.workers, Array.from(workerMap.values()));
 
-      const { data: seekers } = await supabase
-        .from("seeker_profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      const mappedSeekers = (seekers ?? []).map((s: any) => ({
+      // 4. Seekers
+      const mappedSeekers: SeekerProfile[] = (seekersRes.data ?? []).map((s: any) => ({
         id: s.id,
         fullName: s.full_name,
         phone: s.phone,
         city: s.city,
         area: s.area,
         careFor: s.care_for,
-        persons: s.persons,
-        timing: s.timing,
-        days: s.days,
-        notes: s.notes,
+        persons: s.persons || [],
+        timing: s.timing || [],
+        days: s.days || [],
+        notes: s.notes || "",
         createdAt: new Date(s.created_at).getTime(),
       }));
 
-      // Auto-sync any local seeker not yet in Supabase
       const localSeekers = read<SeekerProfile[]>(K.seekers, []);
       for (const s of localSeekers) {
         if (!mappedSeekers.some((ss: SeekerProfile) => ss.id === s.id)) {
@@ -886,7 +1093,6 @@ if (isSupabaseConfigured) {
         }
       }
 
-      // Merge local and server seekers
       const seekerMap = new Map<string, SeekerProfile>();
       mappedSeekers.forEach((s: SeekerProfile) => seekerMap.set(s.id, s));
       localSeekers.forEach((s: SeekerProfile) => {
@@ -894,12 +1100,9 @@ if (isSupabaseConfigured) {
       });
       write(K.seekers, Array.from(seekerMap.values()));
 
-      const { data: requests } = await supabase
-        .from("care_requests")
-        .select("id, worker_id, seeker_id, status, created_at")
-        .order("created_at", { ascending: false });
-      if (requests && requests.length > 0) {
-        const mappedRequests = requests.map((r: any) => ({
+      // 5. Care Requests
+      if (requestsRes.data && requestsRes.data.length > 0) {
+        const mappedRequests = requestsRes.data.map((r: any) => ({
           id: r.id,
           workerId: r.worker_id,
           seekerId: r.seeker_id,
@@ -913,24 +1116,13 @@ if (isSupabaseConfigured) {
         write(K.requests, Array.from(reqMap.values()));
       }
 
-      const { data: threads } = await supabase
-        .from("message_threads")
-        .select("id, pair_key")
-        .order("created_at", { ascending: false });
-      const threadKeyById = new Map<string, string>();
-      (threads ?? []).forEach((thread: any) => {
-        threadKeyById.set(thread.id, thread.pair_key);
-      });
-
-      const { data: messages } = await supabase
-        .from("messages")
-        .select("id, thread_id, sender_id, content, created_at")
-        .order("created_at", { ascending: true });
-      if (messages && messages.length > 0) {
-        const mappedMessages = messages.map((m: any) => ({
+      // 6. Messages
+      if (messagesRes.data && messagesRes.data.length > 0) {
+        const me = getMe();
+        const mappedMessages = messagesRes.data.map((m: any) => ({
           id: m.id,
           threadId: threadKeyById.get(m.thread_id) ?? m.thread_id,
-          fromMe: false,
+          fromMe: me ? m.sender_id === me.id : false,
           senderId: m.sender_id,
           content: m.content,
           createdAt: new Date(m.created_at).getTime(),
@@ -941,37 +1133,8 @@ if (isSupabaseConfigured) {
         mappedMessages.forEach((m: any) => msgMap.set(m.id, m));
         write(K.messages, Array.from(msgMap.values()));
       }
-
-      const { data: reviews } = await supabase
-        .from("reviews")
-        .select("id, worker_id, seeker_id, rating, comment, seeker_name, created_at")
-        .order("created_at", { ascending: true });
-      if (reviews && reviews.length > 0) {
-        const reviewByWorker = new Map<string, WorkerProfile["reviews"]>();
-        for (const review of reviews as any[]) {
-          const list = reviewByWorker.get(review.worker_id) ?? [];
-          list.push({
-            id: review.id,
-            rating: review.rating,
-            comment: review.comment,
-            seekerName: review.seeker_name,
-            createdAt: new Date(review.created_at).getTime(),
-          });
-          reviewByWorker.set(review.worker_id, list);
-        }
-
-        const currentWorkers = read<WorkerProfile[]>(K.workers, []);
-        const mergedWorkers = currentWorkers.map((worker) => {
-          const workerReviews = reviewByWorker.get(worker.id) ?? [];
-          const rating = workerReviews.length
-            ? workerReviews.reduce((sum, review) => sum + review.rating, 0) / workerReviews.length
-            : worker.rating;
-          return { ...worker, reviews: workerReviews, rating };
-        });
-        write(K.workers, mergedWorkers);
-      }
     } catch (err) {
-      console.warn("Initial data sync notice:", err);
+      console.warn("Parallel data sync notice:", err);
     }
   };
 
@@ -1091,23 +1254,81 @@ if (isSupabaseConfigured) {
         )
         .on(
           "postgres_changes",
-          { event: "INSERT", schema: "public", table: "messages" },
+          { event: "*", schema: "public", table: "message_threads" },
           (payload: any) => {
             const rec = payload.new;
             if (rec && rec.id) {
-              const all = read<Message[]>(K.messages, []);
-              if (!all.some((m) => m.id === rec.id)) {
-                all.push({
-                  id: rec.id,
-                  threadId: rec.thread_id,
-                  fromMe: false,
-                  senderId: rec.sender_id,
-                  content: rec.content,
-                  createdAt: rec.created_at ? new Date(rec.created_at).getTime() : Date.now(),
-                });
-                write(K.messages, all);
-              }
+              const threads = getThreads();
+              const idx = threads.findIndex((t) => t.id === rec.id || t.pairKey === rec.pair_key);
+              const threadObj: Thread = {
+                id: rec.id,
+                pairKey: rec.pair_key,
+                seekerId: rec.seeker_id,
+                workerId: rec.worker_id,
+              };
+              if (idx >= 0) threads[idx] = threadObj;
+              else threads.push(threadObj);
+              write(K.threads, threads);
             }
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "messages" },
+          async (payload: any) => {
+            const rec = payload.new;
+            if (!rec || !rec.id) return;
+            const me = getMe();
+            const all = read<Message[]>(K.messages, []);
+
+            let threads = getThreads();
+            let thread = threads.find((t) => t.id === rec.thread_id);
+            if (!thread && isSupabaseConfigured) {
+              try {
+                const { data: tData } = await supabase
+                  .from("message_threads")
+                  .select("id, pair_key, seeker_id, worker_id")
+                  .eq("id", rec.thread_id)
+                  .maybeSingle();
+                if (tData) {
+                  thread = {
+                    id: tData.id,
+                    pairKey: tData.pair_key,
+                    seekerId: tData.seeker_id,
+                    workerId: tData.worker_id,
+                  };
+                  threads = getThreads();
+                  threads.push(thread);
+                  write(K.threads, threads);
+                }
+              } catch {}
+            }
+
+            const resolvedThreadId = thread?.pairKey || rec.thread_id;
+
+            const existingIdx = all.findIndex(
+              (m) =>
+                m.id === rec.id ||
+                (m.senderId === rec.sender_id &&
+                  m.content === rec.content &&
+                  Math.abs(m.createdAt - new Date(rec.created_at).getTime()) < 10000),
+            );
+
+            const mappedMsg: Message = {
+              id: rec.id,
+              threadId: resolvedThreadId,
+              fromMe: me ? rec.sender_id === me.id : false,
+              senderId: rec.sender_id,
+              content: rec.content,
+              createdAt: rec.created_at ? new Date(rec.created_at).getTime() : Date.now(),
+            };
+
+            if (existingIdx >= 0) {
+              all[existingIdx] = mappedMsg;
+            } else {
+              all.push(mappedMsg);
+            }
+            write(K.messages, all);
           },
         )
         .subscribe();
@@ -1208,6 +1429,7 @@ export const clearDatabase = () => {
     localStorage.removeItem(K.workers);
     localStorage.removeItem(K.seekers);
     localStorage.removeItem(K.requests);
+    localStorage.removeItem(K.threads);
     localStorage.removeItem(K.messages);
     localStorage.removeItem(K.accounts);
     localStorage.removeItem(K.auth);
@@ -1216,6 +1438,7 @@ export const clearDatabase = () => {
   storeCache[K.workers] = [];
   storeCache[K.seekers] = [];
   storeCache[K.requests] = [];
+  storeCache[K.threads] = [];
   storeCache[K.messages] = [];
   storeCache[K.accounts] = [];
   storeCache[K.auth] = null;

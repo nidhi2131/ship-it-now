@@ -1,9 +1,9 @@
 import { createFileRoute, useParams, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
-import { getWorker, getMe, addRequest, addReview, useStore, getRequests } from "@/lib/store";
-import { Star, MapPin, IndianRupee, Phone, Share2, Check, Lock } from "lucide-react";
+import { getWorker, fetchWorkerById, getMe, addRequest, addReview, useStore, getRequests } from "@/lib/store";
+import { Star, MapPin, IndianRupee, Phone, Share2, Check, Lock, Loader2 } from "lucide-react";
 import { PrimaryButton, GhostButton, TextArea } from "@/components/form-bits";
 
 export const Route = createFileRoute("/profile/worker/$id")({
@@ -28,8 +28,46 @@ function WorkerProfilePage() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [reviewed, setReviewed] = useState(false);
+  const [loading, setLoading] = useState(!worker);
 
-  if (!worker) return <div className="p-8 text-center text-muted-foreground">Not found</div>;
+  useEffect(() => {
+    if (!worker && id) {
+      setLoading(true);
+      void fetchWorkerById(id).finally(() => setLoading(false));
+    } else if (worker) {
+      setLoading(false);
+    }
+  }, [id, worker]);
+
+  if (!worker) {
+    return (
+      <div className="min-h-screen bg-background" suppressHydrationWarning>
+        <SiteHeader />
+        <div className="mx-auto max-w-4xl px-4 py-16 text-center">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm font-medium text-muted-foreground">Loading caregiver profile...</p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-border bg-card p-8 shadow-soft">
+              <h2 className="text-xl font-bold text-foreground">Caregiver not found</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                This caregiver profile might have been updated or does not exist.
+              </p>
+              <Link
+                to="/search"
+                search={{ tab: "caregivers" }}
+                className="inline-link mt-4 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:brightness-110"
+              >
+                Browse caregivers
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
   const requestRecord = me
     ? requests.find(
         (r) =>
