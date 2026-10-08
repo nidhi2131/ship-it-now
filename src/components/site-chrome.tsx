@@ -91,23 +91,20 @@ export function SiteHeader() {
             </Link>
           )}
 
-          {me?.role === "worker" ? (
-            <Link
-              to="/search"
-              search={{ tab: "requests" }}
-              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
-            >
-              Care Requests
-            </Link>
-          ) : (
-            <Link
-              to="/search"
-              search={{ tab: "caregivers" }}
-              className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
-            >
-              {t("nav.search")}
-            </Link>
-          )}
+          <Link
+            to="/search"
+            search={{ tab: "caregivers" }}
+            className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
+          >
+            {t("nav.search")}
+          </Link>
+          <Link
+            to="/search"
+            search={{ tab: "requests" }}
+            className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground md:inline-flex"
+          >
+            Care Requests
+          </Link>
 
           {/* Language selector button */}
           <div className="relative">

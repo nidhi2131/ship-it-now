@@ -781,60 +781,118 @@ if (isSupabaseConfigured) {
       const { data: workers } = await supabase
         .from("worker_profiles")
         .select("*")
-        .order("created_at", { ascending: false });
-      if (workers && workers.length > 0) {
-        const mappedWorkers = workers.map((w: any) => ({
-          id: w.id,
-          fullName: w.full_name,
-          phone: w.phone,
-          city: w.city,
-          area: w.area,
-          gender: w.gender,
-          age: w.age,
-          languages: w.languages,
-          experience: w.experience,
-          skills: w.skills,
-          availabilityType: w.availability_type,
-          hoursMin: w.hours_min,
-          hoursMax: w.hours_max,
-          rateMin: w.rate_min,
-          rateMax: w.rate_max,
-          paymentMethods: w.payment_methods,
-          serviceAreas: w.service_areas,
-          contactMethod: w.contact_method,
-          bio: w.bio,
-          days: w.days,
-          rating: Number(w.rating || 0),
-          reviews: w.reviews || [],
-          createdAt: new Date(w.created_at).getTime(),
-        }));
+      const mappedWorkers = (workers ?? []).map((w: any) => ({
+        id: w.id,
+        fullName: w.full_name,
+        phone: w.phone,
+        city: w.city,
+        area: w.area,
+        gender: w.gender,
+        age: w.age,
+        languages: w.languages,
+        experience: w.experience,
+        skills: w.skills,
+        availabilityType: w.availability_type,
+        hoursMin: w.hours_min,
+        hoursMax: w.hours_max,
+        rateMin: w.rate_min,
+        rateMax: w.rate_max,
+        paymentMethods: w.payment_methods,
+        serviceAreas: w.service_areas,
+        contactMethod: w.contact_method,
+        bio: w.bio,
+        days: w.days,
+        rating: Number(w.rating || 0),
+        reviews: w.reviews || [],
+        createdAt: new Date(w.created_at).getTime(),
+      }));
 
-        // Store workers from Supabase directly
-        write(K.workers, mappedWorkers);
+      // Auto-sync any local worker not yet in Supabase
+      const localWorkers = read<WorkerProfile[]>(K.workers, []);
+      for (const w of localWorkers) {
+        if (!mappedWorkers.some((sw: WorkerProfile) => sw.id === w.id)) {
+          supabase.from("worker_profiles").upsert({
+            id: w.id,
+            full_name: w.fullName,
+            phone: w.phone,
+            city: w.city,
+            area: w.area,
+            gender: w.gender,
+            age: w.age,
+            languages: w.languages,
+            experience: w.experience,
+            skills: w.skills,
+            availability_type: w.availabilityType,
+            hours_min: w.hoursMin,
+            hours_max: w.hoursMax,
+            rate_min: w.rateMin,
+            rate_max: w.rateMax,
+            payment_methods: w.paymentMethods,
+            service_areas: w.serviceAreas,
+            contact_method: w.contactMethod,
+            bio: w.bio,
+            days: w.days,
+            rating: w.rating,
+            reviews: w.reviews,
+            created_at: new Date(w.createdAt).toISOString(),
+          }).then(() => {});
+        }
       }
+
+      // Merge local and server workers
+      const workerMap = new Map<string, WorkerProfile>();
+      mappedWorkers.forEach((w: WorkerProfile) => workerMap.set(w.id, w));
+      localWorkers.forEach((w: WorkerProfile) => {
+        if (!workerMap.has(w.id)) workerMap.set(w.id, w);
+      });
+      write(K.workers, Array.from(workerMap.values()));
 
       const { data: seekers } = await supabase
         .from("seeker_profiles")
         .select("*")
         .order("created_at", { ascending: false });
-      if (seekers && seekers.length > 0) {
-        const mappedSeekers = seekers.map((s: any) => ({
-          id: s.id,
-          fullName: s.full_name,
-          phone: s.phone,
-          city: s.city,
-          area: s.area,
-          careFor: s.care_for,
-          persons: s.persons,
-          timing: s.timing,
-          days: s.days,
-          notes: s.notes,
-          createdAt: new Date(s.created_at).getTime(),
-        }));
 
-        // Store seekers from Supabase directly
-        write(K.seekers, mappedSeekers);
+      const mappedSeekers = (seekers ?? []).map((s: any) => ({
+        id: s.id,
+        fullName: s.full_name,
+        phone: s.phone,
+        city: s.city,
+        area: s.area,
+        careFor: s.care_for,
+        persons: s.persons,
+        timing: s.timing,
+        days: s.days,
+        notes: s.notes,
+        createdAt: new Date(s.created_at).getTime(),
+      }));
+
+      // Auto-sync any local seeker not yet in Supabase
+      const localSeekers = read<SeekerProfile[]>(K.seekers, []);
+      for (const s of localSeekers) {
+        if (!mappedSeekers.some((ss: SeekerProfile) => ss.id === s.id)) {
+          supabase.from("seeker_profiles").upsert({
+            id: s.id,
+            full_name: s.fullName,
+            phone: s.phone,
+            city: s.city,
+            area: s.area,
+            care_for: s.careFor,
+            persons: s.persons,
+            timing: s.timing,
+            days: s.days,
+            notes: s.notes,
+            created_at: new Date(s.createdAt).toISOString(),
+          }).then(() => {});
+        }
       }
+
+      // Merge local and server seekers
+      const seekerMap = new Map<string, SeekerProfile>();
+      mappedSeekers.forEach((s: SeekerProfile) => seekerMap.set(s.id, s));
+      localSeekers.forEach((s: SeekerProfile) => {
+        if (!seekerMap.has(s.id)) seekerMap.set(s.id, s);
+      });
+      write(K.seekers, Array.from(seekerMap.values()));
 
       const { data: requests } = await supabase
         .from("care_requests")
