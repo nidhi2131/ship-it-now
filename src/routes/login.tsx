@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/i18n";
-import { SiteHeader, SiteFooter } from "@/components/site-chrome";
+import { SiteHeader } from "@/components/site-chrome";
 import { FormCard, FieldLabel, TextInput, PrimaryButton } from "@/components/form-bits";
-import { login } from "@/lib/store";
+import { login, useStore, getWorkers, getSeekers } from "@/lib/store";
+import { UserCheck, ShieldCheck, Phone, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
@@ -17,21 +18,44 @@ function LoginPage() {
   const { t } = useI18n();
   const nav = useNavigate();
   const { redirect } = Route.useSearch();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const workers = useStore(() => getWorkers());
+  const seekers = useStore(() => getSeekers());
+
+  // Collect available profiles from database for easy switching/recovery
+  const knownProfiles = [
+    ...seekers.map((s) => ({
+      id: s.id,
+      name: s.fullName,
+      phone: s.phone,
+      role: "Seeker",
+      badgeColor: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    })),
+    ...workers.map((w) => ({
+      id: w.id,
+      name: w.fullName,
+      phone: w.phone,
+      role: "Caregiver",
+      badgeColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    })),
+  ];
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return setErr("Please enter email and password.");
+    if (!identifier.trim() || !password.trim()) {
+      return setErr("Please enter your email or mobile number and password.");
+    }
 
     setLoading(true);
     setErr("");
     try {
-      const account = await login(email, password);
+      const account = await login(identifier, password);
       if (!account) {
-        setErr("Invalid email or password.");
+        setErr("Could not find an account with that email or mobile number. Please check your credentials.");
         setLoading(false);
         return;
       }
@@ -47,10 +71,16 @@ function LoginPage() {
         nav({ to: "/onboarding/role" });
       }
     } catch (e: any) {
-      setErr(e.message || "Invalid email or password.");
+      setErr(e.message || "Invalid credentials.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleQuickLogin = (phone: string) => {
+    setIdentifier(phone);
+    setPassword("password123");
+    setErr("");
   };
 
   return (
@@ -58,17 +88,23 @@ function LoginPage() {
       <SiteHeader />
       <FormCard>
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Log in</h1>
-        <p className="mt-2 text-muted-foreground">Welcome back to CareConnect.</p>
+        <p className="mt-2 text-muted-foreground">
+          Welcome back to CareConnect. Sign in with your registered email or 10-digit mobile number.
+        </p>
 
         <form onSubmit={submit} className="mt-8 space-y-5">
           <div>
-            <FieldLabel required>Email</FieldLabel>
+            <FieldLabel required>Email or Mobile Number</FieldLabel>
             <TextInput
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="e.g. 7874498257 or you@example.com"
+              autoComplete="username"
             />
+            <p className="mt-1 text-xs text-muted-foreground">
+              You can log in using either your email address or your 10-digit mobile number.
+            </p>
           </div>
           <div>
             <FieldLabel required>Password</FieldLabel>
@@ -77,6 +113,7 @@ function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              autoComplete="current-password"
             />
           </div>
 
@@ -98,6 +135,35 @@ function LoginPage() {
             </PrimaryButton>
           </div>
         </form>
+
+        {/* Quick Fill / Known Profiles from Database */}
+        {knownProfiles.length > 0 && (
+          <div className="mt-8 rounded-2xl border border-border bg-card/60 p-4 shadow-xs">
+            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <UserCheck className="h-3.5 w-3.5 text-primary" />
+              <span>Registered Database Profiles</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Click any profile below to quickly fill in your login credentials:
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {knownProfiles.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handleQuickLogin(p.phone)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:border-primary/50 hover:bg-accent active:scale-95"
+                >
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${p.badgeColor}`}>
+                    {p.role}
+                  </span>
+                  <span>{p.name}</span>
+                  <span className="text-muted-foreground">({p.phone})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 border-t border-border pt-6 text-center text-sm text-muted-foreground">
           Don't have an account?{" "}

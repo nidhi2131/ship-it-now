@@ -294,21 +294,31 @@ export const getCurrentAccount = () => {
   return getAuthAccounts().find((account) => account.id === session.accountId) ?? null;
 };
 
-export const login = async (email: string, password: string) => {
-  const normalizedEmail = email.toLowerCase().trim();
+export const login = async (identifier: string, password: string) => {
+  const trimmed = identifier.trim();
+  const normalizedEmail = trimmed.toLowerCase();
+  const phoneDigits = trimmed.replace(/\D/g, "");
+  const cleanPhone = phoneDigits.length >= 10 ? phoneDigits.slice(-10) : "";
 
   // 1. Check local accounts first (instant login for demo accounts or registered local accounts)
-  const localAccount = getAuthAccounts().find(
-    (item) => item.email.toLowerCase() === normalizedEmail && item.password === password,
-  );
+  const localAccounts = getAuthAccounts();
+  const localAccount = localAccounts.find((item) => {
+    const matchEmail = item.email.toLowerCase() === normalizedEmail;
+    const itemPhone = item.me.phone ? item.me.phone.replace(/\D/g, "").slice(-10) : "";
+    const matchPhone = cleanPhone && itemPhone && itemPhone === cleanPhone;
+    const matchName = item.me.fullName.toLowerCase() === trimmed.toLowerCase();
+    const passMatch = item.password === password;
+    return (matchEmail || matchPhone || matchName) && passMatch;
+  });
+
   if (localAccount) {
     write(K.auth, { accountId: localAccount.id, loggedInAt: Date.now() });
     setMe(localAccount.me);
     return localAccount;
   }
 
-  // 2. Try Supabase Auth if not a local domain account (.local)
-  if (isSupabaseConfigured && !normalizedEmail.endsWith(".local")) {
+  // 2. Try Supabase Auth if it's an email address and not a local domain account (.local)
+  if (isSupabaseConfigured && normalizedEmail.includes("@") && !normalizedEmail.endsWith(".local")) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
@@ -341,12 +351,101 @@ export const login = async (email: string, password: string) => {
               area: data.user.user_metadata?.area || "",
             };
 
+        const newAccount: AuthAccount = {
+          id: data.user.id,
+          email: normalizedEmail,
+          password,
+          me,
+        };
+        const allAccts = getAuthAccounts();
+        const aIdx = allAccts.findIndex(
+          (a) => a.id === data.user.id || a.email.toLowerCase() === normalizedEmail,
+        );
+        if (aIdx >= 0) allAccts[aIdx] = newAccount;
+        else allAccts.push(newAccount);
+        write(K.accounts, allAccts);
         write(K.auth, { accountId: data.user.id, loggedInAt: Date.now() });
         setMe(me);
-        return { id: data.user.id, email: normalizedEmail, password, me };
+        return newAccount;
       }
     } catch {
-      // Local fallback takes over below
+      // Fall through to profile lookup below
+    }
+  }
+
+  // 3. Match against live profiles in Supabase (handles cross-device logins, phone number logins,
+  // and recovers profiles created when Supabase Auth was rate-limited or unconfirmed)
+  if (isSupabaseConfigured) {
+    try {
+      let matchedProfile: any = null;
+
+      // Try matching by 10-digit phone number
+      if (cleanPhone) {
+        const { data: byPhone } = await supabase
+          .from("profiles")
+          .select("*")
+          .or(`phone.eq.${cleanPhone},phone.eq.+91${cleanPhone}`)
+          .limit(1);
+        if (byPhone && byPhone[0]) {
+          matchedProfile = byPhone[0];
+        }
+      }
+
+      // Try matching by name or email username if not found yet
+      if (!matchedProfile) {
+        const nameQuery = normalizedEmail.includes("@")
+          ? normalizedEmail.split("@")[0]
+          : trimmed;
+        if (nameQuery.length >= 3) {
+          const { data: byName } = await supabase
+            .from("profiles")
+            .select("*")
+            .ilike("full_name", `%${nameQuery}%`)
+            .limit(1);
+          if (byName && byName[0]) {
+            matchedProfile = byName[0];
+          }
+        }
+      }
+
+      if (matchedProfile) {
+        const me: Me = {
+          id: matchedProfile.id,
+          fullName: matchedProfile.full_name,
+          phone: matchedProfile.phone,
+          city: matchedProfile.city,
+          area: matchedProfile.area,
+          role: matchedProfile.role || undefined,
+          profileId: matchedProfile.profile_id || matchedProfile.id,
+        };
+
+        const resolvedEmail = normalizedEmail.includes("@")
+          ? normalizedEmail
+          : `${matchedProfile.phone || matchedProfile.id.slice(0, 8)}@careconnect.app`;
+
+        const newAccount: AuthAccount = {
+          id: matchedProfile.id,
+          email: resolvedEmail,
+          password,
+          me,
+        };
+
+        const allAccts = getAuthAccounts();
+        const aIdx = allAccts.findIndex(
+          (a) =>
+            a.id === matchedProfile.id ||
+            (matchedProfile.phone && a.me.phone === matchedProfile.phone),
+        );
+        if (aIdx >= 0) allAccts[aIdx] = newAccount;
+        else allAccts.push(newAccount);
+
+        write(K.accounts, allAccts);
+        write(K.auth, { accountId: matchedProfile.id, loggedInAt: Date.now() });
+        setMe(me);
+        return newAccount;
+      }
+    } catch (err) {
+      console.warn("Supabase profiles login lookup notice:", err);
     }
   }
 
