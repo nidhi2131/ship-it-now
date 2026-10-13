@@ -58,7 +58,7 @@ function WorkerProfilePage() {
               <Link
                 to="/search"
                 search={{ tab: "caregivers" }}
-                className="inline-link mt-4 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:brightness-110"
+                className="inline-link mt-4 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
               >
                 Browse caregivers
               </Link>
@@ -149,7 +149,7 @@ function WorkerProfilePage() {
                 <Link
                   to="/login"
                   search={{ redirect: `/profile/worker/${worker.id}` }}
-                  className="inline-link inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+                  className="inline-link inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
                 >
                   Log in to Connect
                 </Link>
@@ -202,7 +202,7 @@ function WorkerProfilePage() {
                 <Link
                   to="/login"
                   search={{ redirect: `/profile/worker/${worker.id}` }}
-                  className="inline-link rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+                  className="inline-link rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
                 >
                   Log in to CareConnect
                 </Link>

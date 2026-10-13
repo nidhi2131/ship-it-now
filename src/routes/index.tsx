@@ -39,13 +39,13 @@ function Landing() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/onboarding"
-                className="inline-link inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-warm transition-all hover:brightness-110"
+                className="inline-link inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-warm transition-colors hover:bg-primary/90"
               >
                 {t("cta.getStarted")} <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/search"
-                className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3.5 text-base font-semibold text-foreground shadow-soft hover:bg-accent"
+                className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3.5 text-base font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
               >
                 {t("cta.browse")}
               </Link>
@@ -130,7 +130,7 @@ function Landing() {
             </div>
             <Link
               to="/onboarding"
-              className="inline-link inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-warm hover:brightness-110"
+              className="inline-link inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-warm transition-colors hover:bg-primary/90"
             >
               {t("cta.getStarted")} <ArrowRight className="h-4 w-4" />
             </Link>

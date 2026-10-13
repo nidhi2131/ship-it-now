@@ -83,7 +83,7 @@ function RoleCard({
     <button
       type="button"
       onClick={onClick}
-      className={`group relative w-full overflow-hidden rounded-2xl border-2 border-border bg-card p-6 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-warm ${
+      className={`group relative w-full overflow-hidden rounded-2xl border-2 border-border bg-card p-6 text-left shadow-soft transition-[transform,border-color] duration-200 hover:-translate-y-0.5 ${
         tone === "primary" ? "hover:border-primary" : "hover:border-secondary"
       }`}
     >

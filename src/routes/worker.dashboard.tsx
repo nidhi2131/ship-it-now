@@ -132,7 +132,7 @@ function WorkerDash() {
                       <Link
                         to="/messages/$id"
                         params={{ id: s.id }}
-                        className="inline-link flex-1 rounded-lg bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-soft hover:brightness-110"
+                        className="inline-link flex-1 rounded-lg bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
                       >
                         {hasAcceptedRequest(me.id, s.id) ? t("card.message") : "Connect"}
                       </Link>
@@ -224,7 +224,7 @@ function WorkerDash() {
                                       "responded",
                                     );
                                   }}
-                                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-110 active:scale-95 transition-all"
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95 transition-[transform,background-color]"
                                 >
                                   <Check className="h-4 w-4" /> Accept Request
                                 </button>
@@ -324,7 +324,7 @@ function WorkerDash() {
                   <Link
                     to="/profile/worker/$id"
                     params={{ id: worker.id }}
-                    className="inline-link rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:brightness-110"
+                    className="inline-link rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
                   >
                     {t("profile.shareLink")}
                   </Link>

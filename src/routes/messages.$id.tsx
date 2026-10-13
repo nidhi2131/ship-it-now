@@ -104,8 +104,11 @@ function MessageThread() {
     return () => clearInterval(interval);
   }, [threadId, otherParticipantId]);
 
+  const prevCountRef = useRef<number | null>(null);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const isInitial = prevCountRef.current === null;
+    prevCountRef.current = msgs.length;
+    endRef.current?.scrollIntoView({ behavior: isInitial ? "instant" : "smooth" });
   }, [msgs.length]);
 
   const send = (e: React.FormEvent) => {
@@ -203,7 +206,7 @@ function MessageThread() {
             </div>
           ) : req && req.status === "pending" ? (
             <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 shrink-0">
-              <Clock className="h-3.5 w-3.5 animate-spin text-amber-600" />
+              <Clock className="h-3.5 w-3.5 text-amber-600" />
               <span>Pending Acceptance</span>
             </div>
           ) : (
@@ -289,7 +292,7 @@ function MessageThread() {
               <Link
                 to="/login"
                 search={{ redirect: `/messages/${id}` }}
-                className="inline-link rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+                className="inline-link rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
               >
                 Log in
               </Link>
@@ -318,7 +321,7 @@ function MessageThread() {
                 <button
                   type="button"
                   onClick={handleSendRequest}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 active:scale-95"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-[transform,background-color] hover:bg-primary/90 active:scale-95"
                 >
                   <UserPlus className="h-4 w-4" />
                   {me.role === "seeker"
@@ -343,7 +346,7 @@ function MessageThread() {
                   <button
                     type="button"
                     onClick={handleAcceptRequest}
-                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition-all hover:bg-emerald-700 active:scale-95"
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition-[transform,background-color] hover:bg-emerald-700 active:scale-95"
                   >
                     <Check className="h-4 w-4" />
                     Accept Request & Unlock Chat
@@ -360,7 +363,7 @@ function MessageThread() {
             ) : (
               <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-6 text-center dark:border-blue-900/50 dark:bg-blue-950/20 shadow-soft">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
-                  <Clock className="h-6 w-6 animate-pulse" />
+                  <Clock className="h-6 w-6" />
                 </div>
                 <h3 className="mt-3 text-base font-bold text-foreground">
                   Connection Request Pending
@@ -370,7 +373,7 @@ function MessageThread() {
                   <strong>{other?.fullName || "this user"}</strong>. Once they accept, this chat will instantly unlock for both of you!
                 </p>
                 <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-blue-100/70 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-ping" />
+                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
                   Waiting for recipient acceptance...
                 </div>
               </div>
@@ -386,7 +389,7 @@ function MessageThread() {
               <button
                 type="button"
                 onClick={handleSendRequest}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 active:scale-95"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-[transform,background-color] hover:bg-primary/90 active:scale-95"
               >
                 <UserPlus className="h-4 w-4" />
                 Send New Connection Request

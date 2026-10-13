@@ -72,7 +72,7 @@ export function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-4 py-2 text-sm font-medium transition-all ${
+      className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
         active
           ? "border-primary bg-primary text-primary-foreground shadow-warm"
           : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary-soft"
@@ -87,7 +87,7 @@ export function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElemen
   return (
     <button
       {...props}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-warm transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 ${props.className ?? ""}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-warm transition-[transform,opacity,background-color] hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${props.className ?? ""}`}
     />
   );
 }

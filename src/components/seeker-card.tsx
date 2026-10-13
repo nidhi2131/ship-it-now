@@ -19,7 +19,7 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
   const conditions = primaryPerson?.disabilities || [];
 
   return (
-    <article className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-warm">
+    <article className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40">
       <div className="flex items-start gap-4">
         <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-secondary to-secondary/70 text-lg font-bold text-secondary-foreground shadow-sm">
           {initials}
@@ -108,7 +108,7 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
             <Link
               to="/messages/$id"
               params={{ id: s.id }}
-              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 flex items-center justify-center gap-1"
+              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1"
             >
               <MessageSquare className="h-3.5 w-3.5" />
               {me.role === "worker" ? "Offer Care" : t("card.message")}
@@ -126,7 +126,7 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
             <Link
               to="/login"
               search={{ redirect: `/messages/${s.id}` }}
-              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 flex items-center justify-center gap-1"
+              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1"
             >
               <MessageSquare className="h-3.5 w-3.5" />
               Offer Care

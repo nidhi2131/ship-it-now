@@ -53,7 +53,7 @@ function SeekerProfilePage() {
               <Link
                 to="/search"
                 search={{ tab: "requests" }}
-                className="inline-link mt-4 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft hover:brightness-110"
+                className="inline-link mt-4 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
               >
                 Browse care requests
               </Link>
@@ -114,7 +114,7 @@ function SeekerProfilePage() {
                 <Link
                   to="/login"
                   search={{ redirect: `/profile/seeker/${seeker.id}` }}
-                  className="inline-link rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+                  className="inline-link rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
                 >
                   Log in to CareConnect
                 </Link>

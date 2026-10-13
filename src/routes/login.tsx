@@ -152,7 +152,7 @@ function LoginPage() {
                   key={p.id}
                   type="button"
                   onClick={() => handleQuickLogin(p.phone)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:border-primary/50 hover:bg-accent active:scale-95"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-[transform,border-color,background-color] hover:border-primary/50 hover:bg-accent active:scale-95"
                 >
                   <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${p.badgeColor}`}>
                     {p.role}

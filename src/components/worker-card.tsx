@@ -19,7 +19,7 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
   const isConnected = useStore(() => (me ? hasAcceptedRequest(w.id, me.id) : false));
 
   return (
-    <article className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-warm">
+    <article className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40">
       <div className="flex items-start gap-4">
         <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-lg font-bold text-primary-foreground">
           {initials}
@@ -79,7 +79,7 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
             {w.contactMethod === "common.call" ? (
               <a
                 href={`tel:+91${w.phone}`}
-                className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+                className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
               >
                 {t("common.call")}
               </a>
@@ -87,7 +87,7 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
               <Link
                 to="/messages/$id"
                 params={{ id: w.id }}
-                className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+                className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
               >
                 {isConnected ? t("card.message") : "Connect"}
               </Link>
@@ -105,7 +105,7 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
             <Link
               to="/login"
               search={{ redirect: `/messages/${w.id}` }}
-              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110"
+              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
             >
               {w.contactMethod === "common.call" ? t("common.call") : "Connect"}
             </Link>
