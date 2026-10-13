@@ -51,22 +51,25 @@ function Landing() {
                   >
                     {t("nav.dashboard")} <ArrowRight className="h-4 w-4" />
                   </Link>
-                  <Link
-                    to="/search"
-                    search={{ tab: "caregivers" }}
-                    className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3.5 text-base font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
-                  >
-                    <HeartHandshake className="h-4 w-4 text-primary" />
-                    {t("cta.browse")}
-                  </Link>
-                  <Link
-                    to="/search"
-                    search={{ tab: "requests" }}
-                    className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3.5 text-base font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
-                  >
-                    <Users className="h-4 w-4 text-secondary" />
-                    Care Requests
-                  </Link>
+                  {me.role === "worker" ? (
+                    <Link
+                      to="/search"
+                      search={{ tab: "requests" }}
+                      className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3.5 text-base font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
+                    >
+                      <Users className="h-4 w-4 text-secondary" />
+                      Browse Care Requests
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/search"
+                      search={{ tab: "caregivers" }}
+                      className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3.5 text-base font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
+                    >
+                      <HeartHandshake className="h-4 w-4 text-primary" />
+                      {t("cta.browse")}
+                    </Link>
+                  )}
                 </>
               ) : (
                 <>

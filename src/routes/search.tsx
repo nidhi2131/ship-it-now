@@ -43,15 +43,15 @@ function SearchPage() {
     void syncPublicDirectory();
   }, []);
 
-  // Determine initial tab:
-  // If caregiver/worker is logged in, default to seekers (care requests)!
-  // If seeker or guest, default to workers (caregivers) unless ?tab=requests
+  // Role-strict tab logic:
+  // - Caregivers (workers) search and browse "Care Requests" (seekers)
+  // - Care recipients (seekers) search and browse "Caregivers" (workers)
   const initialTab: "workers" | "seekers" =
-    tab === "requests" || tab === "seekers"
+    me?.role === "worker"
       ? "seekers"
-      : tab === "caregivers" || tab === "workers"
+      : me?.role === "seeker"
         ? "workers"
-        : me?.role === "worker"
+        : tab === "requests" || tab === "seekers"
           ? "seekers"
           : "workers";
 
@@ -59,12 +59,16 @@ function SearchPage() {
   const [activeTab, setActiveTab] = useState<"workers" | "seekers">(initialTab);
 
   useEffect(() => {
-    if (tab === "requests" || tab === "seekers") {
+    if (me?.role === "worker") {
+      setActiveTab("seekers");
+    } else if (me?.role === "seeker") {
+      setActiveTab("workers");
+    } else if (tab === "requests" || tab === "seekers") {
       setActiveTab("seekers");
     } else if (tab === "caregivers" || tab === "workers") {
       setActiveTab("workers");
     }
-  }, [tab]);
+  }, [tab, me?.role]);
 
   const handleTabChange = (target: "workers" | "seekers") => {
     setActiveTab(target);
@@ -324,33 +328,35 @@ function SearchPage() {
             </button>
           </div>
 
-          {/* Mode Selector Tabs: Caregivers vs Families Needing Care */}
-          <div className="flex w-full max-w-md rounded-2xl border border-border bg-card/80 p-1.5 shadow-soft">
-            <button
-              type="button"
-              onClick={() => handleTabChange("workers")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-colors ${
-                activeTab === "workers"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <HeartHandshake className="h-4 w-4" />
-              Find Caregivers
-            </button>
-            <button
-              type="button"
-              onClick={() => handleTabChange("seekers")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-colors ${
-                activeTab === "seekers"
-                  ? "bg-secondary text-secondary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Users className="h-4 w-4" />
-              Care Requests
-            </button>
-          </div>
+          {/* Mode Selector Tabs: only show toggle if user does not have a strict single role */}
+          {!me?.role && (
+            <div className="flex w-full max-w-md rounded-2xl border border-border bg-card/80 p-1.5 shadow-soft">
+              <button
+                type="button"
+                onClick={() => handleTabChange("workers")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-colors ${
+                  activeTab === "workers"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <HeartHandshake className="h-4 w-4" />
+                Find Caregivers
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTabChange("seekers")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-colors ${
+                  activeTab === "seekers"
+                    ? "bg-secondary text-secondary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Care Requests
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[280px_1fr]">

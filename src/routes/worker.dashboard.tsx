@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
+import { SeekerCard } from "@/components/seeker-card";
 import {
   getMe,
   getWorker,
@@ -98,46 +99,7 @@ function WorkerDash() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {seekers.map((s) => (
-                  <div
-                    key={s.id}
-                    className="rounded-2xl border border-border bg-card p-5 shadow-soft"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-foreground">{s.fullName}</h3>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(s.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {s.area}, {s.city}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {s.persons[0]?.worksRequired.slice(0, 3).map((w) => (
-                        <span
-                          key={w}
-                          className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium"
-                        >
-                          {t(w)}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <Link
-                        to="/profile/seeker/$id"
-                        params={{ id: s.id }}
-                        className="inline-link flex-1 rounded-lg border border-border bg-background px-3 py-2 text-center text-sm font-semibold text-foreground hover:bg-accent"
-                      >
-                        {t("card.viewProfile")}
-                      </Link>
-                      <Link
-                        to="/messages/$id"
-                        params={{ id: s.id }}
-                        className="inline-link flex-1 rounded-lg bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
-                      >
-                        {hasAcceptedRequest(me.id, s.id) ? t("card.message") : "Connect"}
-                      </Link>
-                    </div>
-                  </div>
+                  <SeekerCard key={s.id} s={s} />
                 ))}
               </div>
             ))}
@@ -191,16 +153,16 @@ function WorkerDash() {
                         return (
                           <div
                             key={request.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
+                            className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between"
                           >
-                            <div>
-                              <h4 className="font-semibold text-foreground">
+                            <div className="min-w-0">
+                              <h4 className="truncate font-semibold text-foreground">
                                 {seeker?.fullName || "Family Care Request"}
                               </h4>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="truncate text-sm text-muted-foreground">
                                 {seeker ? `${seeker.area}, ${seeker.city}` : "Care recipient"}
                               </p>
-                              <div className="mt-1 flex items-center gap-2">
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
                                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                                   {new Date(request.createdAt).toLocaleDateString()}
                                 </span>
@@ -213,7 +175,7 @@ function WorkerDash() {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50 sm:border-0 sm:pt-0">
                               {!isAccepted ? (
                                 <button
                                   type="button"
@@ -224,7 +186,7 @@ function WorkerDash() {
                                       "responded",
                                     );
                                   }}
-                                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95 transition-[transform,background-color]"
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs sm:text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95 transition-[transform,background-color]"
                                 >
                                   <Check className="h-4 w-4" /> Accept Request
                                 </button>
@@ -236,7 +198,7 @@ function WorkerDash() {
                               <Link
                                 to="/messages/$id"
                                 params={{ id: request.seekerId }}
-                                className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                                className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-xs sm:text-sm font-semibold text-foreground hover:bg-accent"
                               >
                                 Message
                               </Link>
@@ -264,20 +226,20 @@ function WorkerDash() {
                         return (
                           <div
                             key={request.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
+                            className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between"
                           >
-                            <div>
-                              <h4 className="font-semibold text-foreground">
+                            <div className="min-w-0">
+                              <h4 className="truncate font-semibold text-foreground">
                                 {seeker?.fullName || "Family Care Request"}
                               </h4>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="truncate text-sm text-muted-foreground">
                                 {seeker ? `${seeker.area}, ${seeker.city}` : "Care recipient"}
                               </p>
                               <span className="mt-1 inline-block text-xs uppercase tracking-wide text-muted-foreground">
                                 Status: {isAccepted ? "Accepted by family" : "Pending family response"}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50 sm:border-0 sm:pt-0">
                               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                                 isAccepted ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground"
                               }`}>
@@ -286,7 +248,7 @@ function WorkerDash() {
                               <Link
                                 to="/messages/$id"
                                 params={{ id: request.seekerId }}
-                                className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                                className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-xs sm:text-sm font-semibold text-foreground hover:bg-accent"
                               >
                                 Message
                               </Link>

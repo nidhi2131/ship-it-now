@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { MapPin, Clock, Calendar, Heart, MessageSquare } from "lucide-react";
 import { useI18n } from "@/lib/i18n/i18n";
-import { type SeekerProfile, getMe, useStore } from "@/lib/store";
+import { type SeekerProfile, getMe, useStore, hasAcceptedRequest } from "@/lib/store";
 
 export function SeekerCard({ s }: { s: SeekerProfile }) {
   const { t } = useI18n();
@@ -110,7 +110,7 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
             className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1"
           >
             <MessageSquare className="h-3.5 w-3.5" />
-            {me.role === "worker" ? "Offer Care" : t("card.message")}
+            {hasAcceptedRequest(me.id, s.id) ? t("card.message") : me.role === "worker" ? "Offer Care" : "Connect"}
           </Link>
         ) : (
           <Link

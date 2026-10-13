@@ -115,20 +115,20 @@ function SeekerDash() {
                       return (
                         <div
                           key={r.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
+                          className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <div>
-                            <h4 className="font-semibold text-foreground">
+                          <div className="min-w-0">
+                            <h4 className="truncate font-semibold text-foreground">
                               {w?.fullName || "Caregiver"}
                             </h4>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="truncate text-sm text-muted-foreground">
                               {w ? `${w.area}, ${w.city}` : "Caregiver"}
                             </p>
                             <span className="mt-1 inline-block text-xs uppercase tracking-wide text-muted-foreground">
                               {new Date(r.createdAt).toLocaleDateString()}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50 sm:border-0 sm:pt-0">
                             {!isAccepted ? (
                               <button
                                 type="button"
@@ -139,7 +139,7 @@ function SeekerDash() {
                                     "responded",
                                   );
                                 }}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95 transition-[transform,background-color]"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs sm:text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95 transition-[transform,background-color]"
                               >
                                 <Check className="h-4 w-4" /> Accept Offer
                               </button>
@@ -151,7 +151,7 @@ function SeekerDash() {
                             <Link
                               to="/messages/$id"
                               params={{ id: r.workerId }}
-                              className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                              className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-xs sm:text-sm font-semibold text-foreground hover:bg-accent"
                             >
                               {t("card.message")}
                             </Link>
@@ -175,28 +175,28 @@ function SeekerDash() {
                       return (
                         <div
                           key={r.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
+                          className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <div>
-                            <h4 className="font-semibold text-foreground">
+                          <div className="min-w-0">
+                            <h4 className="truncate font-semibold text-foreground">
                               {w?.fullName || "Caregiver"}
                             </h4>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="truncate text-sm text-muted-foreground">
                               {new Date(r.createdAt).toLocaleDateString()}
                             </p>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-border/50 sm:border-0 sm:pt-0">
                             <StatusBadge status={r.status} />
                             {canContact ? (
                               <Link
                                 to="/messages/$id"
                                 params={{ id: r.workerId }}
-                                className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                                className="inline-link rounded-lg border border-border bg-background px-3 py-2 text-xs sm:text-sm font-semibold text-foreground hover:bg-accent"
                               >
                                 {t("card.message")}
                               </Link>
                             ) : (
-                              <span className="rounded-lg border border-dashed border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              <span className="rounded-lg border border-dashed border-border px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 Waiting for Caregiver
                               </span>
                             )}
