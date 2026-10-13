@@ -7,7 +7,12 @@ import { getMe, getWorkers, getRequests, getWorker, useStore, updateRequestStatu
 import { Heart, Check, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/seeker/dashboard")({
-  head: () => ({ meta: [{ title: "Your dashboard — CareConnect" }] }),
+  head: () => ({
+    meta: [
+      { title: "Family Dashboard — CareConnect" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: SeekerDash,
 });
 

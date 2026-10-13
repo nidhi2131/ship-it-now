@@ -34,7 +34,12 @@ const CONTACT = ["common.call", "common.whatsapp", "common.appMessage"];
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 export const Route = createFileRoute("/onboarding/worker")({
-  head: () => ({ meta: [{ title: "Caregiver profile — CareConnect" }] }),
+  head: () => ({
+    meta: [
+      { title: "Create Caregiver Profile — CareConnect" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: WorkerForm,
 });
 

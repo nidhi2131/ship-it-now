@@ -14,14 +14,7 @@ import {
 
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [
-      { title: "CareConnect — Trusted elder care, close to home" },
-      {
-        name: "description",
-        content:
-          "Find someone you can trust to be there every day. Browse experienced, local caregivers in your language.",
-      },
-    ],
+    meta: [{ title: "CareConnect — Trusted elder care, close to home" }],
   }),
   component: Landing,
 });

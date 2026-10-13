@@ -12,7 +12,7 @@ export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
     tab: typeof search.tab === "string" ? search.tab : undefined,
   }),
-  head: () => ({ meta: [{ title: "Browse — CareConnect" }] }),
+  head: () => ({ meta: [{ title: "Browse Caregivers — CareConnect" }] }),
   component: SearchPage,
 });
 

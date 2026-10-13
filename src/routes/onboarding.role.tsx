@@ -6,7 +6,12 @@ import { getMe, setMe } from "@/lib/store";
 import { ArrowLeft, Heart, Briefcase } from "lucide-react";
 
 export const Route = createFileRoute("/onboarding/role")({
-  head: () => ({ meta: [{ title: "Choose your role — CareConnect" }] }),
+  head: () => ({
+    meta: [
+      { title: "Choose Your Role — CareConnect" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: RolePick,
 });
 

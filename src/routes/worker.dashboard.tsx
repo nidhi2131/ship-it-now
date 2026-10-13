@@ -14,7 +14,12 @@ import {
 import { Star, MapPin, Bell, User, Check } from "lucide-react";
 
 export const Route = createFileRoute("/worker/dashboard")({
-  head: () => ({ meta: [{ title: "Your dashboard — CareConnect" }] }),
+  head: () => ({
+    meta: [
+      { title: "Caregiver Dashboard — CareConnect" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: WorkerDash,
 });
 

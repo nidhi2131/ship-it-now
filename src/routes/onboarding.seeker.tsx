@@ -47,7 +47,12 @@ const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const AGE_RANGES: CarePerson["ageRange"][] = ["60-70", "71-80", "81-90", "90+"];
 
 export const Route = createFileRoute("/onboarding/seeker")({
-  head: () => ({ meta: [{ title: "Seeker profile — CareConnect" }] }),
+  head: () => ({
+    meta: [
+      { title: "Create Family Profile — CareConnect" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: SeekerForm,
 });
 

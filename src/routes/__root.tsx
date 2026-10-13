@@ -78,16 +78,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "theme-color", content: "#c25e00" },
       { title: "CareConnect — Trusted elder care, close to home" },
       {
         name: "description",
         content:
           "Find someone you can trust to be there every day. CareConnect connects families with experienced caregivers across India.",
       },
-      { property: "og:title", content: "CareConnect — Trusted elder care, close to home" },
-      { property: "og:description", content: "Find someone you can trust to be there every day." },
+      { property: "og:site_name", content: "CareConnect" },
+      { property: "og:locale", content: "en_IN" },
       { property: "og:type", content: "website" },
+      { property: "og:title", content: "CareConnect — Trusted elder care, close to home" },
+      {
+        property: "og:description",
+        content:
+          "Find someone you can trust to be there every day. CareConnect connects families with experienced caregivers across India.",
+      },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "CareConnect — Trusted elder care, close to home" },
+      {
+        name: "twitter:description",
+        content:
+          "Find someone you can trust to be there every day. CareConnect connects families with experienced caregivers across India.",
+      },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },

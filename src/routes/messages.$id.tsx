@@ -36,7 +36,12 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/messages/$id")({
-  head: () => ({ meta: [{ title: "Messages — CareConnect" }] }),
+  head: () => ({
+    meta: [
+      { title: "Direct Messages — CareConnect" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: MessageThread,
 });
 

@@ -1,2 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /messages/
+Disallow: /seeker/dashboard
+Disallow: /worker/dashboard
+Disallow: /onboarding/role
+Disallow: /onboarding/seeker
+Disallow: /onboarding/worker
