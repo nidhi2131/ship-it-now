@@ -37,37 +37,45 @@ The platform simplifies elder-care coordination by enabling families to specify 
 ## Directory Structure
 
 ```text
-ship-it-now-main/
-├── public/                 Static assets and public web files
+ship-it-now/
+├── public/                     Static assets (favicon, robots.txt)
 ├── src/
-│   ├── components/         Reusable UI components and Radix wrappers
-│   │   ├── ui/             Primitives (Dialog, Card, Button, Input, etc.)
-│   │   ├── form-bits.tsx   Shared form controls and badges
-│   │   ├── site-chrome.tsx Header, footer, and navigation
-│   │   └── worker-card.tsx Caregiver summary card
-│   ├── hooks/              Utility hooks (use-mobile, etc.)
+│   ├── components/             Core application UI components
+│   │   ├── form-bits.tsx       Shared form controls, inputs, buttons, and chips
+│   │   ├── seeker-card.tsx     Family care request summary card
+│   │   ├── site-chrome.tsx     Site header, navigation, language switcher, and footer
+│   │   └── worker-card.tsx     Caregiver summary card
 │   ├── lib/
-│   │   ├── i18n/           Localization dictionaries (EN, HI, GU)
-│   │   ├── store.ts        State store, auth sessions, and sync engine
-│   │   ├── supabase.ts     Supabase client initialization
-│   │   └── utils.ts        Class merge helpers
-│   ├── routes/             File-based routes and pages
-│   │   ├── __root.tsx      Root application shell and layout
-│   │   ├── index.tsx       Landing page
-│   │   ├── login.tsx       Authentication page
-│   │   ├── search.tsx      Caregiver directory with search and filter
-│   │   ├── onboarding.*    Multi-step registration workflows
-│   │   ├── seeker.*        Seeker dashboard and profile views
-│   │   ├── worker.*        Worker dashboard and profile views
-│   │   └── messages.$id.tsx Direct messaging thread
-│   ├── router.tsx          TanStack Router instance
-│   ├── routeTree.gen.ts    Auto-generated route tree
-│   ├── server.ts           Server-side entry point
-│   └── styles.css          Global Tailwind stylesheets
-├── supabase-schema.sql     PostgreSQL schema, triggers, and RLS rules
-├── SUPABASE_SETUP.md       Supabase database configuration instructions
-├── vite.config.ts          Vite build configuration
-└── package.json            Project scripts and dependencies
+│   │   ├── i18n/               Localization dictionaries (English, Hindi, Gujarati)
+│   │   ├── error-capture.ts    Runtime error capture utilities
+│   │   ├── error-page.ts       Fallback error page renderer
+│   │   ├── error-reporting.ts  Client error reporting handler
+│   │   ├── store.ts            Reactive state store, auth sessions, and live Supabase sync
+│   │   └── supabase.ts         Supabase client initialization
+│   ├── routes/                 File-based routes and pages
+│   │   ├── __root.tsx          Root application shell, SEO metadata, and layout
+│   │   ├── index.tsx           Landing page
+│   │   ├── login.tsx           Authentication page (Email / Mobile Number login)
+│   │   ├── messages.$id.tsx    Request-gated real-time messaging thread
+│   │   ├── onboarding.index.tsxAccount creation step
+│   │   ├── onboarding.role.tsx Role selection step (Family vs. Caregiver)
+│   │   ├── onboarding.seeker.tsxFamily care request onboarding form
+│   │   ├── onboarding.worker.tsxCaregiver onboarding form
+│   │   ├── profile.seeker.$id.tsxProtected care request detail page
+│   │   ├── profile.worker.$id.tsxProtected caregiver profile & review page
+│   │   ├── search.tsx          Protected Caregiver & Care Request directory with filters
+│   │   ├── seeker.dashboard.tsxFamily dashboard (matches, offers, sent requests)
+│   │   └── worker.dashboard.tsxCaregiver dashboard (matches, incoming requests, reviews)
+│   ├── router.tsx              TanStack Router configuration
+│   ├── routeTree.gen.ts        Auto-generated route tree
+│   ├── server.ts               SSR server entry point
+│   ├── start.ts                TanStack Start configuration
+│   └── styles.css              Global Tailwind CSS v4 theme and styles
+├── supabase-schema.sql         PostgreSQL schema, indexes, triggers, and Realtime config
+├── SUPABASE_SETUP.md           Supabase setup and configuration guide
+├── tsconfig.json               TypeScript configuration
+├── vite.config.ts              Vite + TanStack Start build configuration
+└── package.json                Project scripts and dependencies
 ```
 
 ---
