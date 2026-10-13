@@ -20,6 +20,7 @@ import {
   getRequestBetween,
   syncMessagesForThread,
   syncCareRequests,
+  markThreadAsRead,
 } from "@/lib/store";
 import { TextInput, PrimaryButton } from "@/components/form-bits";
 import {
@@ -92,6 +93,7 @@ function MessageThread() {
   // Real-time synchronization hook: pull Supabase messages and care request status
   useEffect(() => {
     if (!threadId) return;
+    markThreadAsRead(threadId);
     void syncMessagesForThread(threadId);
     void syncCareRequests();
 
@@ -106,10 +108,13 @@ function MessageThread() {
 
   const prevCountRef = useRef<number | null>(null);
   useEffect(() => {
+    if (threadId) {
+      markThreadAsRead(threadId);
+    }
     const isInitial = prevCountRef.current === null;
     prevCountRef.current = msgs.length;
     endRef.current?.scrollIntoView({ behavior: isInitial ? "instant" : "smooth" });
-  }, [msgs.length]);
+  }, [msgs.length, threadId]);
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,17 +198,40 @@ function MessageThread() {
             </div>
           </div>
 
-          {/* Connection Status Badge */}
+          {/* Connection & Presence Status: WhatsApp Style */}
           {!me ? (
             <div className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground shrink-0">
               <Lock className="h-3.5 w-3.5" />
               <span>Login Required</span>
             </div>
           ) : isAccepted ? (
-            <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 shrink-0">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Connected · Live</span>
-            </div>
+            (() => {
+              // WhatsApp style: check recipient's latest activity/message timestamp
+              const otherMsgs = msgs.filter((m) => !m.fromMe && m.senderId !== me.id);
+              const lastMsg = otherMsgs[otherMsgs.length - 1];
+              const lastTime = lastMsg?.createdAt || other?.createdAt || 0;
+              const isRecent = Date.now() - lastTime < 10 * 60 * 1000; // within 10 min
+
+              const formatLastSeen = (ts: number) => {
+                if (!ts) return "recently";
+                const d = new Date(ts);
+                const isToday = new Date().toDateString() === d.toDateString();
+                const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                return isToday ? `today at ${time}` : `${d.toLocaleDateString([], { month: "short", day: "numeric" })} at ${time}`;
+              };
+
+              return (
+                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>{isRecent ? "online" : "connected"}</span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground font-normal">
+                    last seen {formatLastSeen(lastTime)}
+                  </span>
+                </div>
+              );
+            })()
           ) : req && req.status === "pending" ? (
             <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 shrink-0">
               <Clock className="h-3.5 w-3.5 text-amber-600" />

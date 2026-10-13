@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Globe, Heart, Bell } from "lucide-react";
 import { useI18n, type Locale } from "@/lib/i18n/i18n";
 import { useState } from "react";
-import { getMe, getRequests, useStore, logout } from "@/lib/store";
+import { getMe, getRequests, getUnreadMessagesCount, useStore, logout } from "@/lib/store";
 
 const langs: { code: Locale; label: string }[] = [
   { code: "en", label: "English" },
@@ -15,10 +15,11 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const me = useStore(() => getMe());
   const requests = useStore(() => getRequests());
+  const unreadChatCount = useStore(() => getUnreadMessagesCount());
   const nav = useNavigate();
   const current = langs.find((l) => l.code === locale)!;
 
-  const pendingNotifsCount = me
+  const pendingRequestsCount = me
     ? requests.filter((r) => {
         if (r.status !== "pending") return false;
         if (me.role === "worker") {
@@ -36,6 +37,8 @@ export function SiteHeader() {
         return false;
       }).length
     : 0;
+
+  const totalNotifications = pendingRequestsCount + unreadChatCount;
 
   const handleLogout = async () => {
     try {
@@ -83,9 +86,9 @@ export function SiteHeader() {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
-              {pendingNotifsCount > 0 && (
+              {totalNotifications > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground animate-pulse">
-                  {pendingNotifsCount}
+                  {totalNotifications}
                 </span>
               )}
             </Link>

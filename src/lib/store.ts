@@ -173,6 +173,7 @@ const K = {
   requests: "cc.requests",
   threads: "cc.threads",
   messages: "cc.messages",
+  readReceipts: "cc.read_receipts",
 };
 
 let storeVersion = 0;
@@ -955,6 +956,45 @@ export const hasAcceptedRequest = (workerId: string, seekerId: string) => {
   return Boolean(
     req && (req.status === "responded" || req.status === "hired" || req.status === "completed")
   );
+};
+
+export const getAllMessages = (): Message[] => {
+  if (isEvaluatingServerSnapshot) return [];
+  return read<Message[]>(K.messages, []);
+};
+
+export const markThreadAsRead = (threadIdOrOtherUserId: string) => {
+  if (typeof window === "undefined") return;
+  const me = getMe();
+  if (!me) return;
+  const receipts = read<Record<string, number>>(K.readReceipts, {});
+  const keys = getConversationKeys(threadIdOrOtherUserId, me.id);
+  const now = Date.now();
+  keys.forEach((k) => {
+    receipts[k] = now;
+  });
+  receipts[threadIdOrOtherUserId] = now;
+  write(K.readReceipts, { ...receipts });
+};
+
+export const getUnreadMessagesCount = (): number => {
+  if (isEvaluatingServerSnapshot) return 0;
+  const me = getMe();
+  if (!me) return 0;
+  const all = read<Message[]>(K.messages, []);
+  const receipts = read<Record<string, number>>(K.readReceipts, {});
+
+  // Group unread incoming messages sent to me or within my threads
+  const incoming = all.filter((m) => {
+    // Only count messages that are NOT sent by me
+    if (m.fromMe) return false;
+    if (m.senderId && m.senderId === me.id) return false;
+    // Check if the thread was marked read after this message was sent
+    const lastRead = receipts[m.threadId] || 0;
+    return m.createdAt > lastRead;
+  });
+
+  return incoming.length;
 };
 
 // --- Messages ---
