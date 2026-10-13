@@ -1776,7 +1776,7 @@ export const clearDatabase = () => {
 };
 
 // Automatic one-time cleanup to clear any existing mock data from browser localStorage
-const STORE_RESET_KEY = "cc.db_cleaned_v4";
+const STORE_RESET_KEY = "cc.db_cleaned_v6";
 if (typeof window !== "undefined") {
   try {
     if (!localStorage.getItem(STORE_RESET_KEY)) {

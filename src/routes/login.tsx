@@ -99,7 +99,7 @@ function LoginPage() {
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="e.g. 7874498257 or you@example.com"
+              placeholder="e.g. 9876543210 or you@example.com"
               autoComplete="username"
             />
             <p className="mt-1 text-xs text-muted-foreground">
