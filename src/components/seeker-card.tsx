@@ -94,44 +94,33 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
         )}
       </div>
 
-      {/* Action buttons with auth gate */}
+      {/* Action buttons: anyone can view details, login required only to connect/message */}
       <div className="flex gap-2 pt-1 mt-auto">
+        <Link
+          to="/profile/seeker/$id"
+          params={{ id: s.id }}
+          className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+        >
+          View Details
+        </Link>
         {me ? (
-          <>
-            <Link
-              to="/profile/seeker/$id"
-              params={{ id: s.id }}
-              className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
-            >
-              View Details
-            </Link>
-            <Link
-              to="/messages/$id"
-              params={{ id: s.id }}
-              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1"
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              {me.role === "worker" ? "Offer Care" : t("card.message")}
-            </Link>
-          </>
+          <Link
+            to="/messages/$id"
+            params={{ id: s.id }}
+            className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1"
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            {me.role === "worker" ? "Offer Care" : t("card.message")}
+          </Link>
         ) : (
-          <>
-            <Link
-              to="/login"
-              search={{ redirect: `/profile/seeker/${s.id}` }}
-              className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
-            >
-              View Details
-            </Link>
-            <Link
-              to="/login"
-              search={{ redirect: `/messages/${s.id}` }}
-              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1"
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              Offer Care
-            </Link>
-          </>
+          <Link
+            to="/login"
+            search={{ redirect: `/messages/${s.id}` }}
+            className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1"
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            Offer Care
+          </Link>
         )}
       </div>
     </article>

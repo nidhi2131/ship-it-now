@@ -1251,6 +1251,8 @@ export const addReview = async (
   write(K.workers, all);
 };
 
+export let syncPublicDirectory: () => Promise<void> = async () => {};
+
 // --- Supabase Synchronization & Auth Listener ---
 if (isSupabaseConfigured) {
   // Listen to auth changes and sync 'me'
@@ -1283,7 +1285,10 @@ if (isSupabaseConfigured) {
         console.warn("Error syncing user profile:", err);
       }
     } else if (event === "SIGNED_OUT") {
-      setMe(null);
+      const localAuth = read<AuthSession | null>(K.auth, null);
+      if (!localAuth) {
+        setMe(null);
+      }
     }
   });
 
@@ -1444,6 +1449,7 @@ if (isSupabaseConfigured) {
     }
   };
 
+  syncPublicDirectory = fetchDb;
   fetchDb();
 
   // Subscribe to Supabase Realtime changes for real-time client & server updates

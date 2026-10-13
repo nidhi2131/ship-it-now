@@ -94,14 +94,14 @@ export function SiteHeader() {
           <Link
             to="/search"
             search={{ tab: "caregivers" }}
-            className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground sm:inline-flex"
+            className="inline-link inline-flex items-center rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-foreground/85 transition-colors hover:bg-accent hover:text-foreground shrink-0"
           >
             {t("nav.search")}
           </Link>
           <Link
             to="/search"
             search={{ tab: "requests" }}
-            className="inline-link hidden rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground md:inline-flex"
+            className="inline-link inline-flex items-center rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-foreground/85 transition-colors hover:bg-accent hover:text-foreground shrink-0"
           >
             Care Requests
           </Link>

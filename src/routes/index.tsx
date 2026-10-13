@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
+import { WorkerCard } from "@/components/worker-card";
+import { SeekerCard } from "@/components/seeker-card";
+import { getWorkers, getSeekers, useStore, syncPublicDirectory } from "@/lib/store";
 import {
   Heart,
   Search,
@@ -10,6 +14,8 @@ import {
   Languages,
   Award,
   ArrowRight,
+  HeartHandshake,
+  Users,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -21,6 +27,14 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const { t } = useI18n();
+  const workers = useStore(() => getWorkers());
+  const seekers = useStore(() => getSeekers());
+  const [previewTab, setPreviewTab] = useState<"workers" | "seekers">("workers");
+
+  useEffect(() => {
+    void syncPublicDirectory();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -36,7 +50,7 @@ function Landing() {
               {t("app.tagline")}
             </h1>
             <p className="mt-5 max-w-xl text-lg text-muted-foreground">{t("app.subtitle")}</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/onboarding"
                 className="inline-link inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-warm transition-colors hover:bg-primary/90"
@@ -45,9 +59,19 @@ function Landing() {
               </Link>
               <Link
                 to="/search"
-                className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3.5 text-base font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
+                search={{ tab: "caregivers" }}
+                className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3.5 text-base font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
               >
+                <HeartHandshake className="h-4 w-4 text-primary" />
                 {t("cta.browse")}
+              </Link>
+              <Link
+                to="/search"
+                search={{ tab: "requests" }}
+                className="inline-link inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3.5 text-base font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
+              >
+                <Users className="h-4 w-4 text-secondary" />
+                Care Requests
               </Link>
             </div>
 
@@ -95,8 +119,91 @@ function Landing() {
         </div>
       </section>
 
+      {/* Live Public Directory Preview: Caregivers & Care Requests (Visible Without Login) */}
+      <section className="mx-auto max-w-6xl px-6 pt-16 pb-8">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">
+              Open Community Directory
+            </span>
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {previewTab === "workers" ? "Available Caregivers" : "Families Needing Care"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Browse verified profiles and active care requests freely — no login required to explore.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-1.5 shadow-soft">
+            <button
+              type="button"
+              onClick={() => setPreviewTab("workers")}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
+                previewTab === "workers"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <HeartHandshake className="h-4 w-4" />
+              Caregivers ({workers.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewTab("seekers")}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
+                previewTab === "seekers"
+                  ? "bg-secondary text-secondary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              Care Requests ({seekers.length})
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          {previewTab === "workers" ? (
+            workers.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card/50 p-10 text-center text-muted-foreground">
+                No caregivers registered yet. Be the first to create a caregiver profile!
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {workers.slice(0, 6).map((w) => (
+                  <WorkerCard key={w.id} w={w} />
+                ))}
+              </div>
+            )
+          ) : seekers.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card/50 p-10 text-center text-muted-foreground">
+              No care requests posted yet. Post a family care request to get started!
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {seekers.slice(0, 6).map((s) => (
+                <SeekerCard key={s.id} s={s} />
+              ))}
+            </div>
+          )}
+
+          <div className="mt-6 flex justify-center">
+            <Link
+              to="/search"
+              search={{ tab: previewTab === "workers" ? "caregivers" : "requests" }}
+              className="inline-link inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground shadow-soft transition-colors hover:bg-accent"
+            >
+              {previewTab === "workers"
+                ? "View & filter all Caregivers"
+                : "View & filter all Care Requests"}{" "}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* How it works */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
+      <section className="mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           {t("how.title")}
         </h2>

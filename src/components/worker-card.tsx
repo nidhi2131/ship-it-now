@@ -67,49 +67,38 @@ export function WorkerCard({ w }: { w: WorkerProfile }) {
       </div>
 
       <div className="flex gap-2 pt-1">
+        <Link
+          to="/profile/worker/$id"
+          params={{ id: w.id }}
+          className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+        >
+          {t("card.viewProfile")}
+        </Link>
         {me ? (
-          <>
-            <Link
-              to="/profile/worker/$id"
-              params={{ id: w.id }}
-              className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
-            >
-              {t("card.viewProfile")}
-            </Link>
-            {w.contactMethod === "common.call" ? (
-              <a
-                href={`tel:+91${w.phone}`}
-                className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
-              >
-                {t("common.call")}
-              </a>
-            ) : (
-              <Link
-                to="/messages/$id"
-                params={{ id: w.id }}
-                className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
-              >
-                {isConnected ? t("card.message") : "Connect"}
-              </Link>
-            )}
-          </>
-        ) : (
-          <>
-            <Link
-              to="/login"
-              search={{ redirect: `/profile/worker/${w.id}` }}
-              className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
-            >
-              {t("card.viewProfile")}
-            </Link>
-            <Link
-              to="/login"
-              search={{ redirect: `/messages/${w.id}` }}
+          w.contactMethod === "common.call" ? (
+            <a
+              href={`tel:+91${w.phone}`}
               className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
             >
-              {w.contactMethod === "common.call" ? t("common.call") : "Connect"}
+              {t("common.call")}
+            </a>
+          ) : (
+            <Link
+              to="/messages/$id"
+              params={{ id: w.id }}
+              className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+            >
+              {isConnected ? t("card.message") : "Connect"}
             </Link>
-          </>
+          )
+        ) : (
+          <Link
+            to="/login"
+            search={{ redirect: `/messages/${w.id}` }}
+            className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+          >
+            Connect
+          </Link>
         )}
       </div>
     </article>

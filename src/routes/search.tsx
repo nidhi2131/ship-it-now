@@ -4,7 +4,7 @@ import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { WorkerCard } from "@/components/worker-card";
 import { SeekerCard } from "@/components/seeker-card";
-import { getWorkers, getSeekers, getMe, useStore } from "@/lib/store";
+import { getWorkers, getSeekers, getMe, useStore, syncPublicDirectory } from "@/lib/store";
 import { FieldLabel, Chip, TextInput } from "@/components/form-bits";
 import { Filter, ArrowLeft, Users, HeartHandshake } from "lucide-react";
 
@@ -39,9 +39,13 @@ function SearchPage() {
   const workers = useStore(() => getWorkers());
   const seekers = useStore(() => getSeekers());
 
+  useEffect(() => {
+    void syncPublicDirectory();
+  }, []);
+
   // Determine initial tab:
   // If caregiver/worker is logged in, default to seekers (care requests)!
-  // If seeker is logged in, default to workers (caregivers)!
+  // If seeker or guest, default to workers (caregivers) unless ?tab=requests
   const initialTab: "workers" | "seekers" =
     tab === "requests" || tab === "seekers"
       ? "seekers"
@@ -90,7 +94,7 @@ function SearchPage() {
         (w) =>
           (skills.length === 0 || skills.every((s) => w.skills.includes(s))) &&
           (langs.length === 0 || langs.some((l) => w.languages.includes(l))) &&
-          w.rateMin <= rateMax &&
+          (rateMax >= 2000 || w.rateMin <= rateMax) &&
           (avails.length === 0 || avails.some((a) => w.availabilityType.includes(a))),
       ),
     [workers, skills, langs, rateMax, avails],

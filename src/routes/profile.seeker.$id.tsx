@@ -99,118 +99,114 @@ function SeekerProfilePage() {
             <MapPin className="h-4 w-4" /> {seeker.area}, {seeker.city}
           </p>
 
-          {!me ? (
-            <div className="mt-8 rounded-2xl border border-primary/20 bg-primary-soft/30 p-6 sm:p-8 text-center shadow-soft">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Lock className="h-6 w-6" />
+          <div className="mt-6 space-y-5">
+            {seeker.persons.map((p, idx) => (
+              <div key={idx} className="rounded-xl border border-border bg-background p-4">
+                <h3 className="font-bold text-foreground">
+                  {p.name || `Person ${idx + 1}`} · {t(`common.${p.gender}`)} · {p.ageRange}
+                </h3>
+                {p.disabilities.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {t("seeker.disabilities")}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {p.disabilities.map((d) => (
+                        <span
+                          key={d}
+                          className="rounded-full bg-secondary-soft px-2.5 py-1 text-xs font-medium text-secondary"
+                        >
+                          {t(d)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {p.worksRequired.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {t("seeker.work")}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {p.worksRequired.map((w) => (
+                        <span
+                          key={w}
+                          className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary"
+                        >
+                          {t(w)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <h2 className="mt-4 text-xl font-bold text-foreground">
-                Log in to view care requirements & contact details
-              </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                To protect family privacy and ensure verified connections, care recipient details, phone number, and direct messaging are reserved for registered users.
-              </p>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                <Link
-                  to="/login"
-                  search={{ redirect: `/profile/seeker/${seeker.id}` }}
-                  className="inline-link rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
-                >
-                  Log in to CareConnect
-                </Link>
-                <Link
-                  to="/onboarding"
-                  className="inline-link rounded-xl border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground hover:bg-accent"
-                >
-                  Create an account
-                </Link>
-              </div>
+            ))}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Info label={t("seeker.timing")} value={seeker.timing.map(t).join(", ") || "—"} />
+              <Info
+                label={t("seeker.days")}
+                value={seeker.days.map((d) => t(`days.${d}`)).join(", ") || "—"}
+              />
             </div>
-          ) : (
-            <div className="mt-6 space-y-5">
-              {seeker.persons.map((p, idx) => (
-                <div key={idx} className="rounded-xl border border-border bg-background p-4">
-                  <h3 className="font-bold text-foreground">
-                    {p.name || `Person ${idx + 1}`} · {t(`common.${p.gender}`)} · {p.ageRange}
-                  </h3>
-                  {p.disabilities.length > 0 && (
-                    <div className="mt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("seeker.disabilities")}
-                      </div>
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {p.disabilities.map((d) => (
-                          <span
-                            key={d}
-                            className="rounded-full bg-secondary-soft px-2.5 py-1 text-xs font-medium text-secondary"
-                          >
-                            {t(d)}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {p.worksRequired.length > 0 && (
-                    <div className="mt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("seeker.work")}
-                      </div>
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {p.worksRequired.map((w) => (
-                          <span
-                            key={w}
-                            className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary"
-                          >
-                            {t(w)}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Info label={t("seeker.timing")} value={seeker.timing.map(t).join(", ") || "—"} />
-                <Info
-                  label={t("seeker.days")}
-                  value={seeker.days.map((d) => t(`days.${d}`)).join(", ") || "—"}
-                />
+            {seeker.notes && (
+              <div className="rounded-xl bg-accent/60 p-4 text-sm text-foreground/90">
+                {seeker.notes}
               </div>
+            )}
 
-              {seeker.notes && (
-                <div className="rounded-xl bg-accent/60 p-4 text-sm text-foreground/90">
-                  {seeker.notes}
+            <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+              {me ? (
+                <>
+                  <span className="inline-flex items-center gap-2 text-sm text-foreground">
+                    <Phone className="h-4 w-4" /> +91 {seeker.phone}
+                  </span>
+                  <div className="ml-auto flex items-center gap-2">
+                    {me.role === "worker" && (
+                      <PrimaryButton onClick={sendOffer} disabled={offerSent}>
+                        {offerSent ? (
+                          <>
+                            <Check className="h-4 w-4" /> Offer Sent
+                          </>
+                        ) : (
+                          "Send Care Offer"
+                        )}
+                      </PrimaryButton>
+                    )}
+                    <Link
+                      to="/messages/$id"
+                      params={{ id: seeker.id }}
+                      className="inline-link rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-accent"
+                    >
+                      {t("card.message")}
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <div className="flex w-full flex-wrap items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Lock className="h-4 w-4 text-primary" /> Log in to view phone number or send a care offer
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to="/login"
+                      search={{ redirect: `/profile/seeker/${seeker.id}` }}
+                      className="inline-link rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+                    >
+                      Log in to Offer Care
+                    </Link>
+                    <Link
+                      to="/onboarding"
+                      className="inline-link rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+                    >
+                      Sign up
+                    </Link>
+                  </div>
                 </div>
               )}
-
-              <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
-                <span className="inline-flex items-center gap-2 text-sm text-foreground">
-                  <Phone className="h-4 w-4" /> +91 {seeker.phone}
-                </span>
-                <div className="ml-auto flex items-center gap-2">
-                  {me.role === "worker" && (
-                    <PrimaryButton onClick={sendOffer} disabled={offerSent}>
-                      {offerSent ? (
-                        <>
-                          <Check className="h-4 w-4" /> Offer Sent
-                        </>
-                      ) : (
-                        "Send Care Offer"
-                      )}
-                    </PrimaryButton>
-                  )}
-                  <Link
-                    to="/messages/$id"
-                    params={{ id: seeker.id }}
-                    className="inline-link rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-accent"
-                  >
-                    {t("card.message")}
-                  </Link>
-                </div>
-              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
       <SiteFooter />
