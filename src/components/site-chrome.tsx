@@ -91,20 +91,24 @@ export function SiteHeader() {
             </Link>
           )}
 
-          <Link
-            to="/search"
-            search={{ tab: "caregivers" }}
-            className="inline-link inline-flex items-center rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-foreground/85 transition-colors hover:bg-accent hover:text-foreground shrink-0"
-          >
-            {t("nav.search")}
-          </Link>
-          <Link
-            to="/search"
-            search={{ tab: "requests" }}
-            className="inline-link inline-flex items-center rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-foreground/85 transition-colors hover:bg-accent hover:text-foreground shrink-0"
-          >
-            Care Requests
-          </Link>
+          {me && (
+            <>
+              <Link
+                to="/search"
+                search={{ tab: "caregivers" }}
+                className="inline-link inline-flex items-center rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-foreground/85 transition-colors hover:bg-accent hover:text-foreground shrink-0"
+              >
+                {t("nav.search")}
+              </Link>
+              <Link
+                to="/search"
+                search={{ tab: "requests" }}
+                className="inline-link inline-flex items-center rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-foreground/85 transition-colors hover:bg-accent hover:text-foreground shrink-0"
+              >
+                Care Requests
+              </Link>
+            </>
+          )}
 
           {/* Language selector button */}
           <div className="relative">

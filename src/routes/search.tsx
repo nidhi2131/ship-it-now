@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useRouter, useNavigate, Link } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/i18n";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
@@ -6,7 +6,7 @@ import { WorkerCard } from "@/components/worker-card";
 import { SeekerCard } from "@/components/seeker-card";
 import { getWorkers, getSeekers, getMe, useStore, syncPublicDirectory } from "@/lib/store";
 import { FieldLabel, Chip, TextInput } from "@/components/form-bits";
-import { Filter, ArrowLeft, Users, HeartHandshake } from "lucide-react";
+import { Filter, ArrowLeft, Users, HeartHandshake, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
@@ -256,6 +256,43 @@ function SearchPage() {
       </button>
     </div>
   );
+
+  if (!me) {
+    return (
+      <div className="min-h-screen bg-background" suppressHydrationWarning>
+        <SiteHeader />
+        <div className="mx-auto max-w-xl px-4 py-16 sm:px-6">
+          <div className="rounded-3xl border border-primary/20 bg-card p-8 text-center shadow-soft">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Lock className="h-7 w-7" />
+            </div>
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">
+              Log in to Browse Caregivers & Care Requests
+            </h1>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              For the privacy and safety of families and caregivers, browsing profiles and care requests is exclusively available to logged-in members.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to="/login"
+                search={{ redirect: "/search" }}
+                className="inline-link rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+              >
+                Log in to Continue
+              </Link>
+              <Link
+                to="/onboarding"
+                className="inline-link rounded-xl border border-border bg-background px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+              >
+                Create an Account
+              </Link>
+            </div>
+          </div>
+        </div>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background" suppressHydrationWarning>

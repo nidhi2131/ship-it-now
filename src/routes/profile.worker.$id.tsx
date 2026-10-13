@@ -39,6 +39,43 @@ function WorkerProfilePage() {
     }
   }, [id, worker]);
 
+  if (!me) {
+    return (
+      <div className="min-h-screen bg-background" suppressHydrationWarning>
+        <SiteHeader />
+        <div className="mx-auto max-w-xl px-4 py-16 sm:px-6">
+          <div className="rounded-3xl border border-primary/20 bg-card p-8 text-center shadow-soft">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Lock className="h-7 w-7" />
+            </div>
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">
+              Log in to View Caregiver Profile
+            </h1>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Caregiver profiles and contact details are protected and only visible to logged-in CareConnect members.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to="/login"
+                search={{ redirect: `/profile/worker/${id}` }}
+                className="inline-link rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+              >
+                Log in to Continue
+              </Link>
+              <Link
+                to="/onboarding"
+                className="inline-link rounded-xl border border-border bg-background px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+              >
+                Create an Account
+              </Link>
+            </div>
+          </div>
+        </div>
+        <SiteFooter />
+      </div>
+    );
+  }
+
   if (!worker) {
     return (
       <div className="min-h-screen bg-background" suppressHydrationWarning>

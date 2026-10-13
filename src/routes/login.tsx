@@ -136,35 +136,6 @@ function LoginPage() {
           </div>
         </form>
 
-        {/* Quick Fill / Known Profiles from Database */}
-        {knownProfiles.length > 0 && (
-          <div className="mt-8 rounded-2xl border border-border bg-card/60 p-4 shadow-xs">
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              <UserCheck className="h-3.5 w-3.5 text-primary" />
-              <span>Registered Database Profiles</span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Click any profile below to quickly fill in your login credentials:
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {knownProfiles.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => handleQuickLogin(p.phone)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-[transform,border-color,background-color] hover:border-primary/50 hover:bg-accent active:scale-95"
-                >
-                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${p.badgeColor}`}>
-                    {p.role}
-                  </span>
-                  <span>{p.name}</span>
-                  <span className="text-muted-foreground">({p.phone})</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="mt-6 border-t border-border pt-6 text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
           <Link to="/onboarding" className="font-semibold text-primary hover:underline">
