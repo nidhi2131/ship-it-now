@@ -303,18 +303,18 @@ function SearchPage() {
       <SiteHeader />
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-4">
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
             <div>
               <button
                 onClick={() => router.history.back()}
-                className="mb-4 w-fit inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-[transform,background-color] active:scale-95"
+                className="mb-3 w-fit inline-flex items-center gap-2 rounded-full bg-primary px-3.5 py-1.5 text-xs sm:text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-[transform,background-color] active:scale-95"
               >
-                <ArrowLeft className="h-4 w-4" /> Back
+                <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Back
               </button>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
                 {activeTab === "workers" ? "Available Caregivers" : "Families Needing Care"}
               </h1>
-              <p className="mt-1 text-muted-foreground" suppressHydrationWarning>
+              <p className="mt-1 text-xs sm:text-sm text-muted-foreground" suppressHydrationWarning>
                 {activeTab === "workers"
                   ? `${filteredWorkers.length} caregivers found`
                   : `${filteredSeekers.length} care requests found`}
@@ -322,7 +322,7 @@ function SearchPage() {
             </div>
             <button
               onClick={() => setOpenFilters((o) => !o)}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-soft lg:hidden"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-soft lg:hidden self-start sm:self-auto"
             >
               <Filter className="h-4 w-4" /> {t("search.filters")}
             </button>

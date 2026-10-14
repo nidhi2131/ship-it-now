@@ -174,24 +174,24 @@ function MessageThread() {
         </Link>
 
         {/* Conversation Header */}
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 sm:p-4 shadow-soft">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-base font-bold text-primary-foreground shadow-warm">
+            <div className="grid h-11 w-11 sm:h-12 sm:w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-base font-bold text-primary-foreground shadow-warm">
               {otherInitials}
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="truncate font-bold text-foreground">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h2 className="truncate font-bold text-foreground text-sm sm:text-base">
                   {other?.fullName ?? "Conversation"}
                 </h2>
                 {other && (
-                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold text-primary shrink-0">
                     {otherWorker ? "Caregiver" : "Care Recipient"}
                   </span>
                 )}
               </div>
               {other && (
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="truncate text-xs text-muted-foreground mt-0.5">
                   {other.area}, {other.city}
                 </p>
               )}
@@ -200,7 +200,7 @@ function MessageThread() {
 
           {/* Connection & Presence Status: WhatsApp Style */}
           {!me ? (
-            <div className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground shrink-0">
+            <div className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground self-start sm:self-auto shrink-0">
               <Lock className="h-3.5 w-3.5" />
               <span>Login Required</span>
             </div>
@@ -221,7 +221,7 @@ function MessageThread() {
               };
 
               return (
-                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-1 sm:gap-0.5 pt-2 sm:pt-0 border-t border-border/50 sm:border-0 shrink-0">
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span>{isRecent ? "online" : "connected"}</span>
@@ -233,12 +233,12 @@ function MessageThread() {
               );
             })()
           ) : req && req.status === "pending" ? (
-            <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 shrink-0">
+            <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 self-start sm:self-auto shrink-0">
               <Clock className="h-3.5 w-3.5 text-amber-600" />
               <span>Pending Acceptance</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground shrink-0">
+            <div className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground self-start sm:self-auto shrink-0">
               <Lock className="h-3.5 w-3.5 text-muted-foreground" />
               <span>Connection Required</span>
             </div>

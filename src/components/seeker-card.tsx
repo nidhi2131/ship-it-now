@@ -19,19 +19,19 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
   const conditions = primaryPerson?.disabilities || [];
 
   return (
-    <article className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-soft transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40">
-      <div className="flex items-start gap-4">
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-secondary to-secondary/70 text-lg font-bold text-secondary-foreground shadow-sm">
+    <article className="group flex flex-col gap-3.5 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-soft transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <div className="grid h-12 w-12 sm:h-14 sm:w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-secondary to-secondary/70 text-base sm:text-lg font-bold text-secondary-foreground shadow-sm">
           {initials}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate text-lg font-bold text-foreground">{s.fullName}</h3>
-            <span className="rounded-full bg-secondary-soft px-2 py-0.5 text-xs font-semibold text-secondary shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <h3 className="truncate text-base sm:text-lg font-bold text-foreground">{s.fullName}</h3>
+            <span className="rounded-full bg-secondary-soft px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-secondary shrink-0">
               {t(`common.${s.careFor}`) || "Care Request"}
             </span>
           </div>
-          <div className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
+          <div className="mt-0.5 flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
             <MapPin className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{s.area}, {s.city}</span>
           </div>
@@ -51,13 +51,13 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
           {works.slice(0, 3).map((w) => (
             <span
               key={w}
-              className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary"
+              className="rounded-full bg-primary-soft px-2.5 py-0.5 sm:py-1 text-[11px] sm:text-xs font-medium text-primary"
             >
               {t(w)}
             </span>
           ))}
           {works.length > 3 && (
-            <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            <span className="rounded-full bg-muted px-2 py-0.5 sm:py-1 text-[11px] sm:text-xs font-medium text-muted-foreground">
               +{works.length - 3}
             </span>
           )}
@@ -70,7 +70,7 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
           {conditions.slice(0, 2).map((c) => (
             <span
               key={c}
-              className="rounded-full bg-secondary-soft px-2.5 py-0.5 text-xs font-medium text-secondary"
+              className="rounded-full bg-secondary-soft px-2.5 py-0.5 text-[11px] sm:text-xs font-medium text-secondary"
             >
               {t(c)}
             </span>
@@ -79,7 +79,7 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
       )}
 
       {/* Timing and days */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-xs text-muted-foreground">
         {s.timing && s.timing.length > 0 && (
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5 shrink-0" />
@@ -94,12 +94,12 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
         )}
       </div>
 
-      {/* Action buttons: anyone can view details, login required only to connect/message */}
-      <div className="flex gap-2 pt-1 mt-auto">
+      {/* Action buttons: Stack on mobile, side-by-side on tablet/desktop */}
+      <div className="flex flex-col sm:flex-row gap-2 pt-1 mt-auto">
         <Link
           to="/profile/seeker/$id"
           params={{ id: s.id }}
-          className="inline-link flex-1 rounded-lg border border-border bg-background px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          className="inline-link w-full sm:flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs sm:text-sm font-semibold text-foreground transition-colors hover:bg-accent"
         >
           View Details
         </Link>
@@ -107,19 +107,19 @@ export function SeekerCard({ s }: { s: SeekerProfile }) {
           <Link
             to="/messages/$id"
             params={{ id: s.id }}
-            className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1"
+            className="inline-link w-full sm:flex-1 rounded-xl bg-primary px-3 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1.5"
           >
-            <MessageSquare className="h-3.5 w-3.5" />
-            {hasAcceptedRequest(me.id, s.id) ? t("card.message") : me.role === "worker" ? "Offer Care" : "Connect"}
+            <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+            <span>{hasAcceptedRequest(me.id, s.id) ? t("card.message") : me.role === "worker" ? "Offer Care" : "Connect"}</span>
           </Link>
         ) : (
           <Link
             to="/login"
             search={{ redirect: `/messages/${s.id}` }}
-            className="inline-link flex-1 rounded-lg bg-primary px-3 sm:px-4 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1"
+            className="inline-link w-full sm:flex-1 rounded-xl bg-primary px-3 py-2.5 text-center text-xs sm:text-sm font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90 flex items-center justify-center gap-1.5"
           >
-            <MessageSquare className="h-3.5 w-3.5" />
-            Offer Care
+            <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+            <span>Offer Care</span>
           </Link>
         )}
       </div>
