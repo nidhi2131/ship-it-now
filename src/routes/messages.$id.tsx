@@ -21,6 +21,8 @@ import {
   syncMessagesForThread,
   syncCareRequests,
   markThreadAsRead,
+  setTypingStatus,
+  isUserTyping,
 } from "@/lib/store";
 import { TextInput, PrimaryButton } from "@/components/form-bits";
 import {
@@ -64,8 +66,12 @@ function MessageThread() {
 
   const threadId = me ? makeThreadKey(me.id, otherParticipantId) : id;
   const msgs = useStore(() => getMessages(threadId));
+  const isOtherTyping = useStore(() =>
+    otherParticipantId ? isUserTyping(threadId, otherParticipantId) : false,
+  );
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<any>(null);
 
   const otherWorker = useStore(() => getWorker(otherParticipantId));
   const otherSeeker = useStore(() => getSeeker(otherParticipantId));
@@ -89,6 +95,16 @@ function MessageThread() {
       });
     }
   }, [otherParticipantId, other]);
+
+  // Clean up typing status on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (me && threadId) {
+        setTypingStatus(threadId, me.id, false);
+      }
+    };
+  }, [threadId, me?.id]);
 
   // Real-time synchronization hook: pull Supabase messages and care request status
   useEffect(() => {
@@ -114,13 +130,32 @@ function MessageThread() {
     const isInitial = prevCountRef.current === null;
     prevCountRef.current = msgs.length;
     endRef.current?.scrollIntoView({ behavior: isInitial ? "instant" : "smooth" });
-  }, [msgs.length, threadId]);
+  }, [msgs.length, threadId, isOtherTyping]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setText(val);
+    if (!me || !isAccepted) return;
+
+    if (val.trim()) {
+      setTypingStatus(threadId, me.id, true);
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = setTimeout(() => {
+        setTypingStatus(threadId, me.id, false);
+      }, 2500);
+    } else {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      setTypingStatus(threadId, me.id, false);
+    }
+  };
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
     const v = text.trim();
     if (!v || !me || !isAccepted) return;
 
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    setTypingStatus(threadId, me.id, false);
     setText("");
     void addMessage(threadId, true, v);
   };
@@ -220,6 +255,19 @@ function MessageThread() {
                 return isToday ? `today at ${time}` : `${d.toLocaleDateString([], { month: "short", day: "numeric" })} at ${time}`;
               };
 
+              if (isOtherTyping) {
+                return (
+                  <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 shrink-0">
+                    <span>typing</span>
+                    <span className="flex items-center gap-0.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 typing-dot typing-dot-1" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 typing-dot typing-dot-2" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 typing-dot typing-dot-3" />
+                    </span>
+                  </div>
+                );
+              }
+
               return (
                 <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-1 sm:gap-0.5 pt-2 sm:pt-0 border-t border-border/50 sm:border-0 shrink-0">
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
@@ -304,6 +352,20 @@ function MessageThread() {
               </div>
             );
           })}
+
+          {/* Animated Typing Indicator Bubble (WhatsApp & Instagram style) */}
+          {isOtherTyping && (
+            <div className="flex flex-col items-start animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <span className="mb-0.5 px-1 text-[11px] font-medium text-muted-foreground">
+                {other?.fullName || "Caregiver"}
+              </span>
+              <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-xs bg-muted px-4 py-3 shadow-soft">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/70 typing-dot typing-dot-1" />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/70 typing-dot typing-dot-2" />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/70 typing-dot typing-dot-3" />
+              </div>
+            </div>
+          )}
           <div ref={endRef} />
         </div>
 
@@ -428,7 +490,7 @@ function MessageThread() {
           <form onSubmit={send} className="flex gap-2">
             <TextInput
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={handleInputChange}
               placeholder={t("msg.placeholder")}
               className="flex-1"
             />

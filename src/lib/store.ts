@@ -181,12 +181,112 @@ let isEvaluatingServerSnapshot = false;
 let messageThreadCache: Record<string, Message[]> = {};
 const storeCache: Record<string, any> = {};
 
+let liveSyncChannel: any = null;
+const typingRegistry: Record<string, Record<string, number>> = {};
+
+if (typeof window !== "undefined") {
+  try {
+    const stored = JSON.parse(localStorage.getItem("cc.typing") || "{}");
+    Object.assign(typingRegistry, stored);
+  } catch {}
+}
+
+export function recordTypingState(
+  threadId: string,
+  senderId: string,
+  isTyping: boolean,
+  timestamp: number,
+) {
+  const keys = getConversationKeys(threadId);
+  keys.add(threadId);
+  for (const k of keys) {
+    if (!typingRegistry[k]) typingRegistry[k] = {};
+    if (isTyping) {
+      typingRegistry[k][senderId] = timestamp;
+    } else {
+      delete typingRegistry[k][senderId];
+    }
+  }
+  storeVersion++;
+  notifyStoreListeners();
+}
+
+export function setTypingStatus(threadId: string, senderId: string, isTyping: boolean) {
+  if (!threadId || !senderId) return;
+  const now = Date.now();
+  recordTypingState(threadId, senderId, isTyping, now);
+
+  if (broadcastBus) {
+    try {
+      broadcastBus.postMessage({
+        type: "typing",
+        threadId,
+        senderId,
+        isTyping,
+        timestamp: now,
+      });
+    } catch {}
+  }
+
+  if (liveSyncChannel && isSupabaseConfigured) {
+    try {
+      liveSyncChannel.send({
+        type: "broadcast",
+        event: "typing",
+        payload: {
+          threadId,
+          senderId,
+          isTyping,
+          timestamp: now,
+        },
+      });
+    } catch {}
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const stored = JSON.parse(localStorage.getItem("cc.typing") || "{}");
+      if (!stored[threadId]) stored[threadId] = {};
+      if (isTyping) {
+        stored[threadId][senderId] = now;
+      } else {
+        delete stored[threadId][senderId];
+      }
+      localStorage.setItem("cc.typing", JSON.stringify(stored));
+    } catch {}
+  }
+}
+
+export function isUserTyping(threadId: string, senderId: string): boolean {
+  if (!threadId || !senderId) return false;
+  const now = Date.now();
+  const threshold = 3500;
+
+  const keys = getConversationKeys(threadId);
+  keys.add(threadId);
+  for (const k of keys) {
+    const m = typingRegistry[k];
+    if (m && m[senderId]) {
+      const ts = m[senderId];
+      if (now - ts < threshold) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 let broadcastBus: BroadcastChannel | null = null;
 if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
   try {
     broadcastBus = new BroadcastChannel("cc_realtime_bus");
     broadcastBus.onmessage = (e) => {
-      const { key, val } = e.data || {};
+      const { type, threadId, senderId, isTyping, timestamp, key, val } = e.data || {};
+      if (type === "typing" && threadId && senderId) {
+        recordTypingState(threadId, senderId, isTyping, timestamp || Date.now());
+        return;
+      }
       if (key) {
         storeCache[key] = val;
         storeVersion++;
@@ -203,7 +303,13 @@ if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
     storeVersion++;
     messageThreadCache = {};
-    if (e.key) {
+    if (e.key === "cc.typing") {
+      try {
+        const stored = JSON.parse(e.newValue || "{}");
+        Object.keys(typingRegistry).forEach((k) => delete typingRegistry[k]);
+        Object.assign(typingRegistry, stored);
+      } catch {}
+    } else if (e.key) {
       delete storeCache[e.key];
     } else {
       Object.keys(storeCache).forEach((k) => delete storeCache[k]);
@@ -1495,8 +1601,14 @@ if (isSupabaseConfigured) {
   // Subscribe to Supabase Realtime changes for real-time client & server updates
   if (typeof window !== "undefined") {
     try {
-      supabase
-        .channel("careconnect_live_sync")
+      liveSyncChannel = supabase.channel("careconnect_live_sync");
+      liveSyncChannel
+        .on("broadcast", { event: "typing" }, (payload: any) => {
+          const { threadId, senderId, isTyping, timestamp } = payload?.payload || {};
+          if (threadId && senderId) {
+            recordTypingState(threadId, senderId, isTyping, timestamp || Date.now());
+          }
+        })
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "worker_profiles" },
